@@ -15,7 +15,7 @@ Salida: catálogo validado. Las 27 etiquetas actuales son candidatas del alfabet
 ## Fase 2 — Web y captura (base implementada)
 
 - [x] React + TypeScript + Vite, interfaz en español.
-- [x] Selección de letra, referencia local temporal y enlace a fuentes.
+- [x] Selección de letra, recorte automático de la lámina del equipo y enlace a fuentes.
 - [x] Cámara y detector MediaPipe con 21 puntos por mano.
 - [x] Captura de intentos de 3 segundos con participante y sesión.
 - [x] IndexedDB, listado, eliminación individual y exportación JSON.

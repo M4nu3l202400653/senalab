@@ -2,7 +2,7 @@
 
 Web app didáctica para el alfabeto de la Lengua de Señas de Guatemala (LENSEGUA). Versión 0.1: laboratorio de captura para preparar datos de entrenamiento.
 
-**Prototipo experimental.** Detecta manos con MediaPipe, guarda secuencias etiquetadas y las exporta para revisión/entrenamiento. Permite cargar un modelo JSON y obtener una letra candidata por intento; no evalúa la corrección de la seña. Las referencias del alfabeto están pendientes de validación lingüística.
+**Prototipo experimental.** Detecta manos con MediaPipe, guarda secuencias etiquetadas y las exporta para revisión/entrenamiento. Permite cargar un modelo JSON y obtener una letra candidata por intento; no evalúa la corrección de la seña. La lámina de referencia proporcionada por el equipo se muestra recortada por letra y está pendiente de validación lingüística. No incluye Ñ.
 
 ## Ejecutar la web
 
@@ -15,7 +15,7 @@ npm run dev -- --host 127.0.0.1
 
 Abre la URL local que imprime Vite. Usa Chrome o Edge de escritorio, permite la cámara y selecciona una letra. Ingresa un código de participante, sesión y consentimiento; captura un intento de tres segundos. En **Mis muestras**, exporta el JSON o elimina intentos.
 
-La cámara requiere localhost o HTTPS. La detección usa el modelo y WASM incluidos en `public/`; no se sube video. Las muestras quedan en IndexedDB, por navegador/origen, y no se sincronizan entre computadoras. Borrar datos del sitio las elimina: exporta respaldos. La referencia local es temporal y no se exporta.
+La cámara requiere localhost o HTTPS. La detección usa el modelo y WASM incluidos en `public/`; no se sube video. Las muestras quedan en IndexedDB, por navegador/origen, y no se sincronizan entre computadoras. Borrar datos del sitio las elimina: exporta respaldos. La referencia se carga automáticamente desde la lámina incluida, usando un recorte por letra. No se usa para entrenar ni se incluye en las muestras exportadas.
 
 ```bash
 npm test
@@ -59,7 +59,7 @@ Para ampliar: recopilar intentos independientes, repetir sesiones y personas, re
 - `docs/DATASET.md`: protocolo, revisión y fuentes.
 - `public/models/`, `public/mediapipe/`: detector y runtime servidos localmente.
 
-Consultar [ruta de trabajo](docs/ROADMAP.md) y [protocolo de muestras](docs/DATASET.md). Los datos reales y los modelos entrenados están ignorados por Git. No se incluyen imágenes de señas descargadas sin permiso.
+Consultar [ruta de trabajo](docs/ROADMAP.md) y [protocolo de muestras](docs/DATASET.md). Los datos reales y los modelos entrenados están ignorados por Git. Se incluye la lámina de señas proporcionada por el usuario como referencia provisional.
 
 ## Recursos externos
 

@@ -12,6 +12,7 @@ import {
 } from "./lib/dataset";
 import { deleteSample, loadSamples, saveSample } from "./lib/storage";
 import { parseModel, recognize, type RecognitionModel } from "./lib/recognizer";
+import { REFERENCE_CROPS } from "./lib/references";
 import "./App.css";
 
 type Tab = "practice" | "dataset" | "roadmap";
@@ -67,7 +68,6 @@ function App() {
   const [prediction, setPrediction] = useState("");
   const testing = useRef(false);
   const [remaining, setRemaining] = useState(0);
-  const [preview, setPreview] = useState<string | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const stream = useRef<MediaStream | null>(null);
@@ -103,12 +103,6 @@ function App() {
       model.current?.close();
     };
   }, []);
-  useEffect(
-    () => () => {
-      if (preview) URL.revokeObjectURL(preview);
-    },
-    [preview],
-  );
 
   function stopCamera() {
     generation.current++;
@@ -367,6 +361,7 @@ function App() {
       setError("No se pudo eliminar la muestra.");
     }
   }
+  const crop = REFERENCE_CROPS[letter]?.split(" ").map(Number);
   const letterCount = samples.filter((s) => s.label === letter).length;
   return (
     <div className="app">
@@ -423,7 +418,6 @@ function App() {
                     disabled={recording}
                     onChange={(e) => {
                       setLetter(e.target.value);
-                      setPreview(null);
                     }}
                   >
                     {LETTERS.map((l) => (
@@ -436,28 +430,35 @@ function App() {
                 <p>
                   {letterCount} intentos guardados para {letter}.
                 </p>
-                <label className="upload">
-                  Imagen de referencia (opcional)
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) setPreview(URL.createObjectURL(file));
-                    }}
-                  />
-                </label>
-                {preview && (
-                  <img
-                    className="reference-image"
-                    src={preview}
-                    alt={`Referencia local para la letra ${letter}, sin validar`}
-                  />
-                )}
-                <p className="help">
-                  Las referencias de LENSEGUA están pendientes de validación. La
-                  imagen seleccionada solo se muestra durante esta sesión.
-                </p>
+                <div className="reference">
+                  <h3>Referencia: {letter}</h3>
+                  {crop ? (
+                    <svg
+                      className="reference-crop"
+                      viewBox={REFERENCE_CROPS[letter]}
+                      role="img"
+                      aria-label={`Referencia de la letra ${letter} de la lámina del equipo`}
+                    >
+                      <defs>
+                        <clipPath id="reference-clip">
+                          <rect x={crop[0]} y={crop[1]} width={crop[2]} height={crop[3]} />
+                        </clipPath>
+                      </defs>
+                      <image
+                        clipPath="url(#reference-clip)"
+                        href="/alfabeto-referencia.jpeg"
+                        width="460"
+                        height="667"
+                      />
+                    </svg>
+                  ) : (
+                    <p>La lámina no incluye la letra {letter}.</p>
+                  )}
+                  <p className="help">
+                    Lámina proporcionada por el equipo, pendiente de validación
+                    para LENSEGUA. Las imágenes fijas no muestran movimientos.
+                  </p>
+                </div>
                 <a
                   href="https://conadi.gob.gt/web/lensegua/"
                   target="_blank"
