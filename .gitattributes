@@ -1,0 +1,2 @@
+# Conservar sin modificaciones los archivos del runtime de terceros.
+public/mediapipe/wasm/*.js -whitespace
