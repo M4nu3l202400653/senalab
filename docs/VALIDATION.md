@@ -22,3 +22,9 @@ Pendiente: capturar intentos con una mano real y cámara física, comprobar los 
 - 7 pruebas web y 5 pruebas de entrenamiento aprobadas. Build TypeScript/producción aprobado.
 - Prueba de navegador con API real y base temporal: copia de seis capturas desde IndexedDB, entrenamiento mediante botón, recuperación de modelo y muestras tras recarga, vuelta al modelo inicial sin borrar muestras, borrado individual, carga del detector con cámara simulada y otro perfil sin acceso a las muestras personales.
 - Sin subida/descarga de JSON en el flujo, ni pestaña de fases. Sigue pendiente evaluar nuevos intentos con cámara física y más personas.
+
+## Visor y foto opcional
+
+- Build de producción y 6 pruebas API aprobados; prueba adicional de persistencia de foto opcional y rechazo de formato/cuadro inválido.
+- Navegador con API real y base temporal: visor de muestras antiguas (21 puntos), deslizador, reproducción y cierre; foto JPEG de prueba asociada a su cuadro, vuelta a puntos en otros cuadros y opción de foto desactivada por defecto con consentimiento actualizado al activarla.
+- La foto no se usa para entrenar. Las capturas antiguas no tienen fotografías recuperables. Falta probar la foto de una captura nueva con cámara física y revisar casos reales de confusión entre letras.

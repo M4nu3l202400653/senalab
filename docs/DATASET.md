@@ -8,9 +8,9 @@ La imagen de referencia sirve para enseñar y verificar una etiqueta. Unas pocas
 4. Capturar tres segundos por intento. El capturador requiere al menos 20 cuadros y dos segundos entre el primero y el último. Verificar manualmente pausas, cambios de mano y pérdidas del detector antes de aprobar.
 5. Repetir en sesiones y condiciones distintas; evitar cientos de cuadros consecutivos como sustituto de personas distintas.
 6. Las muestras se guardan automáticamente en SQLite en el servidor de la aplicación. Conservar respaldos de la base fuera del repositorio. Los códigos de participante y los puntos deben tratarse con cuidado.
-7. Para evaluación formal por CLI, un revisor debe verificar cada intento antes de cambiar `reviewed` de `false` a `true` en una copia del JSON. Sin video guardado, la revisión puede hacerse observando la captura presencialmente y anotando su ID. Si no hay evidencia suficiente, repetir el intento.
+7. Para evaluación formal por CLI, un revisor debe verificar cada intento antes de cambiar `reviewed` de `false` a `true` en una copia del JSON. El visor permite revisar puntos y una foto si se optó por guardarla. Sin video guardado, la revisión puede hacerse observando la captura presencialmente y anotando su ID. Si no hay evidencia suficiente, repetir el intento.
 
-Formato: `schemaVersion: 1`, `language: LENSEGUA`, `samples[]` con ID, etiqueta, participante, sesión, fecha, revisión y cuadros. Cada cuadro contiene `t` (milisegundos relativos al inicio), `landmarks` (21 objetos x/y/z) y `handedness` (salida del detector, no validación de dominancia). No se guardan imágenes ni audio.
+Formato: `schemaVersion: 1`, `language: LENSEGUA`, `samples[]` con ID, etiqueta, participante, sesión, fecha, revisión y cuadros. Cada cuadro contiene `t` (milisegundos relativos al inicio), `landmarks` (21 objetos x/y/z) y `handedness` (salida del detector, no validación de dominancia). No se guarda audio. Una foto JPEG opcional puede guardarse para revisión como `photo: {dataUrl, frameIndex}`; no se usa para entrenar.
 
 La normalización resta la muñeca y divide por la mayor distancia euclidiana de los puntos a la muñeca. Conserva orientación. El baseline calcula la mediana de los 63 valores a lo largo de un intento; pierde la trayectoria y por eso no admite letras dinámicas. No hay un filtro automático que valide la lengua ni la etiqueta.
 

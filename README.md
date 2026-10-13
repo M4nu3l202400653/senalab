@@ -33,7 +33,7 @@ Se puede elegir el intérprete con `SENALAB_PYTHON` y el puerto API con `SENALAB
 
 `data/senalab.sqlite` guarda muestras y modelos en SQLite, fuera de Git. Se separan por un perfil anónimo cuyo identificador de acceso se conserva en el navegador. Los datos quedan en el servidor; borrar el identificador del navegador crea un perfil nuevo y pierde el acceso automático al anterior, pero no elimina la base de datos. No hay cuentas ni sincronización entre dispositivos en esta fase.
 
-Al abrir por primera vez esta versión, las muestras de IndexedDB se copian al servidor, sin borrar el original ni duplicar IDs. El indicador de migración queda en el navegador. La cámara procesa puntos localmente: para guardar/entrenar se envían coordenadas, etiquetas, participante y sesión, sin imágenes ni audio. La prueba de reconocimiento se procesa temporalmente en el navegador y no se envía al servidor.
+Al abrir por primera vez esta versión, las muestras de IndexedDB se copian al servidor, sin borrar el original ni duplicar IDs. El indicador de migración queda en el navegador. La cámara procesa puntos localmente: para guardar/entrenar se envían coordenadas, etiquetas, participante y sesión, sin audio. Por defecto no se envían imágenes; si el usuario activa «Guardar una foto del intento», se guarda un JPEG de referencia junto a los puntos. La prueba de reconocimiento se procesa temporalmente en el navegador y no se envía al servidor.
 
 En el primer inicio, si existe `training/artifacts/personal-af/model.json`, el servidor lo importa como modelo inicial a SQLite. Después lo obtiene de SQLite sin depender del archivo. En un clon nuevo sin datos privados no hay modelo inicial; se puede entrenar uno desde la interfaz o configurar `SENALAB_DEFAULT_MODEL` con un modelo exportado. Se puede configurar `SENALAB_DB` para otra base. Los modelos personales nunca se convierten automáticamente en el modelo inicial compartido.
 
@@ -84,3 +84,9 @@ Sin `--personal`, exige revisión y separación de participantes, con al menos c
 `docs/ci.github-actions.yml` contiene la plantilla de CI con pruebas web/Python/API y build. La credencial actual de GitHub no permite crear workflows; activarla requiere moverla a `.github/workflows/ci.yml` con una credencial que tenga permiso `workflow`.
 
 Ver [ruta técnica](docs/ROADMAP.md), [protocolo](docs/DATASET.md) y [recursos de terceros](THIRD_PARTY.md). [MediaPipe Hand Landmarker](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/web_js) detecta puntos; no reconoce LENSEGUA por sí mismo.
+
+## Revisar capturas y confusiones
+
+En **Mis muestras → Ver intento** se pueden reproducir los puntos o recorrer los cuadros con un deslizador. Las muestras anteriores solo tienen posiciones. Las nuevas capturas pueden guardar una foto opcional, tomada alrededor de la mitad del intento, vinculada al mismo cuadro de puntos. Al elegir ese cuadro se muestra la foto con los puntos; los demás cuadros muestran solo las posiciones. La foto se almacena en el servidor y no se usa como entrada del modelo.
+
+Si hay confusión entre letras, revisar etiquetas, orientación y detección, eliminar/repetir las capturas incorrectas y reunir más intentos independientes de ambas letras antes de reentrenar. Un solo intento por clase no permite valorar precisión. El visor no valida automáticamente la corrección de la seña.

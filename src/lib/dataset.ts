@@ -9,6 +9,7 @@ export type Sample = {
   createdAt: string;
   frames: Frame[];
   reviewed: false;
+  photo?: { dataUrl: string; frameIndex: number };
 };
 export type Dataset = {
   schemaVersion: 1;

@@ -9,6 +9,7 @@ import { deleteSample, loadSamples, saveSample } from "./lib/storage";
 import { recognize, type RecognitionModel } from "./lib/recognizer";
 import { modelRequest } from "./lib/api";
 import { REFERENCE_CROPS } from "./lib/references";
+import { SampleViewer } from "./SampleViewer";
 import "./App.css";
 
 type Tab = "practice" | "recognition" | "dataset";
@@ -19,6 +20,10 @@ function App() {
   const [session, setSession] = useState(() =>
     new Date().toISOString().slice(0, 10),
   );
+  const [savePhoto, setSavePhoto] = useState(false);
+  const [viewedSample, setViewedSample] = useState<string | null>(null);
+  const photoEnabled = useRef(false);
+  const capturedPhoto = useRef<Sample["photo"]>(undefined);
   const [consent, setConsent] = useState(false);
   const [samples, setSamples] = useState<Sample[]>([]);
   const [storageReady, setStorageReady] = useState(false);
@@ -97,6 +102,7 @@ function App() {
     cancelAnimationFrame(animation.current);
     if (timer.current) clearTimeout(timer.current);
     frames.current = null;
+    capturedPhoto.current = undefined;
     setPrediction("");
     setRecording(false);
     setRemaining(0);
@@ -186,7 +192,7 @@ function App() {
                   ? "Muestra una sola mano para esta captura"
                   : "Coloca tu mano dentro del encuadre",
             );
-            if (frames.current && valid)
+            if (frames.current && valid) {
               frames.current.push({
                 t: Math.round(now - started.current),
                 landmarks: result.landmarks[0].map((p) => ({
@@ -197,6 +203,33 @@ function App() {
                 handedness:
                   result.handedness[0]?.[0]?.categoryName ?? "Unknown",
               });
+              if (
+                !testing.current &&
+                photoEnabled.current &&
+                !capturedPhoto.current &&
+                now - started.current >= 1500
+              ) {
+                const snapshot = document.createElement("canvas");
+                snapshot.width = Math.min(640, video.current.videoWidth);
+                snapshot.height = Math.round(
+                  (snapshot.width * video.current.videoHeight) /
+                    video.current.videoWidth,
+                );
+                snapshot
+                  .getContext("2d")!
+                  .drawImage(
+                    video.current,
+                    0,
+                    0,
+                    snapshot.width,
+                    snapshot.height,
+                  );
+                capturedPhoto.current = {
+                  dataUrl: snapshot.toDataURL("image/jpeg", 0.7),
+                  frameIndex: frames.current.length - 1,
+                };
+              }
+            }
             if (frames.current)
               setRemaining(
                 Math.max(0, Math.ceil((3000 - (now - started.current)) / 1000)),
@@ -270,6 +303,7 @@ function App() {
       createdAt: new Date().toISOString(),
       frames: captured,
       reviewed: false,
+      ...(capturedPhoto.current ? { photo: capturedPhoto.current } : {}),
     };
     try {
       await saveSample(sample);
@@ -299,6 +333,8 @@ function App() {
       return;
     setError("");
     testing.current = false;
+    photoEnabled.current = savePhoto;
+    capturedPhoto.current = undefined;
     setPrediction("");
     frames.current = [];
     started.current = performance.now();
@@ -375,6 +411,7 @@ function App() {
   }
   function changeTab(next: Tab) {
     stopCamera();
+    setViewedSample(null);
     setTab(next);
     setError("");
     setMessage("");
@@ -383,6 +420,7 @@ function App() {
     try {
       await deleteSample(id);
       setSamples((s) => s.filter((sample) => sample.id !== id));
+      if (viewedSample === id) setViewedSample(null);
     } catch {
       setError("No se pudo eliminar la muestra.");
     }
@@ -532,12 +570,22 @@ function App() {
                   <label className="checkbox">
                     <input
                       type="checkbox"
+                      checked={savePhoto}
+                      disabled={recording}
+                      onChange={(e) => setSavePhoto(e.target.checked)}
+                    />
+                    Guardar una foto del intento para revisarlo (opcional).
+                  </label>
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
                       checked={consent}
                       disabled={recording}
                       onChange={(e) => setConsent(e.target.checked)}
                     />
-                    Acepto guardar los puntos de mi mano en el servidor de la
-                    aplicación. No se guardan imágenes ni audio.
+                    Acepto guardar los puntos de mi mano
+                    {savePhoto ? " y una foto del intento" : ""} en el servidor
+                    de la aplicación. No se guarda audio.
                   </label>
                 </section>
               ) : (
@@ -715,6 +763,13 @@ function App() {
             >
               {training ? "Entrenando…" : "Entrenar con mis muestras"}
             </button>
+            {viewedSample && samples.find((s) => s.id === viewedSample) && (
+              <SampleViewer
+                key={viewedSample}
+                sample={samples.find((s) => s.id === viewedSample)!}
+                onClose={() => setViewedSample(null)}
+              />
+            )}
             {samples.length ? (
               <div className="table-scroll">
                 <table>
@@ -735,7 +790,13 @@ function App() {
                         <td>{s.session}</td>
                         <td>{s.frames.length}</td>
                         <td>
-                          <button onClick={() => void removeSample(s.id)}>
+                          <button onClick={() => setViewedSample(s.id)}>
+                            Ver intento
+                          </button>{" "}
+                          <button
+                            disabled={training}
+                            onClick={() => void removeSample(s.id)}
+                          >
                             Eliminar
                           </button>
                         </td>

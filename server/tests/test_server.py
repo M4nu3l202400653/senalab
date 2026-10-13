@@ -1,4 +1,5 @@
 import json
+import base64
 import tempfile
 import threading
 import unittest
@@ -72,6 +73,19 @@ class ServerTests(unittest.TestCase):
         incomplete['frames'] = incomplete['frames'][:20]
         with self.assertRaisesRegex(ValueError, 'dos segundos'):
             self.store.put_samples(self.p1, [incomplete])
+
+    def test_optional_photo_persists_and_rejects_invalid_frames(self):
+        one = sample()
+        one['photo'] = {'dataUrl': 'data:image/jpeg;base64,' + base64.b64encode(b'\xff\xd8\xff\xd9').decode(), 'frameIndex': 12}
+        self.store.put_samples(self.p1, [one])
+        self.assertEqual(self.store.samples(self.p1)[0]['photo'], one['photo'])
+        invalid = sample()
+        invalid['photo'] = {**one['photo'], 'frameIndex': 100}
+        with self.assertRaisesRegex(ValueError, 'cuadro'):
+            self.store.put_samples(self.p1, [invalid])
+        invalid['photo'] = {'dataUrl': 'data:text/html;base64,abcd', 'frameIndex': 12}
+        with self.assertRaisesRegex(ValueError, 'JPEG'):
+            self.store.put_samples(self.p1, [invalid])
 
     def test_http_requires_profile_and_persists_samples(self):
         server = ThreadingHTTPServer(('127.0.0.1', 0), handler_for(self.store))

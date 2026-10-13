@@ -199,3 +199,26 @@ nav button[aria-pressed="true"]:hover:enabled {
   border-top: 1px solid #d9e2dd;
   padding-top: 12px;
 }
+
+.sample-viewer {
+  border: 1px solid #aebeb7;
+  padding: 16px;
+  margin: 20px 0;
+}
+.sample-viewer .actions {
+  align-items: center;
+}
+.sample-viewer h3 {
+  margin: 0;
+}
+.sample-points {
+  display: block;
+  width: 100%;
+  max-width: 500px;
+  background: #edf3ef;
+}
+.sample-viewer input[type="range"] {
+  width: 100%;
+  max-width: 500px;
+  accent-color: var(--brand-green);
+}

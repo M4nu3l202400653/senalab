@@ -1,5 +1,6 @@
 """Servidor local del prototipo: muestras y modelos por perfil anónimo."""
 import argparse
+import base64
 from contextlib import contextmanager
 import json
 import os
@@ -62,6 +63,19 @@ class Store:
                 raise ValueError('El intento necesita al menos dos segundos de puntos ordenados')
             for frame in frames:
                 normalize(frame['landmarks'])
+            photo = sample.get('photo')
+            if photo is not None:
+                if not isinstance(photo, dict) or not isinstance(photo.get('frameIndex'), int) or not 0 <= photo['frameIndex'] < len(frames):
+                    raise ValueError('El cuadro de la foto no es válido')
+                data_url = photo.get('dataUrl')
+                if not isinstance(data_url, str) or not data_url.startswith('data:image/jpeg;base64,') or len(data_url) > 400_000:
+                    raise ValueError('La foto debe ser JPEG y pesar menos de 300 KB')
+                try:
+                    raw = base64.b64decode(data_url.split(',', 1)[1], validate=True)
+                except ValueError:
+                    raise ValueError('La foto no es válida')
+                if not raw.startswith(b'\xff\xd8') or not raw.endswith(b'\xff\xd9'):
+                    raise ValueError('La foto no es JPEG')
         with self.connect() as db:
             for sample in samples:
                 db.execute('INSERT OR IGNORE INTO samples VALUES (?,?,?)', (profile, sample['id'], json.dumps(sample, allow_nan=False)))
