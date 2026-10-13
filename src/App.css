@@ -201,3 +201,9 @@ th {
 nav button[aria-pressed="true"]:hover:enabled {
   background: var(--brand-dark);
 }
+
+.recognition {
+  margin-top: 20px;
+  border-top: 1px solid #d9e2dd;
+  padding-top: 12px;
+}

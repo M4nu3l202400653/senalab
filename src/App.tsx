@@ -11,6 +11,7 @@ import {
   type Sample,
 } from "./lib/dataset";
 import { deleteSample, loadSamples, saveSample } from "./lib/storage";
+import { parseModel, recognize, type RecognitionModel } from "./lib/recognizer";
 import "./App.css";
 
 type Tab = "practice" | "dataset" | "roadmap";
@@ -62,6 +63,9 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [detected, setDetected] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [recognizer, setRecognizer] = useState<RecognitionModel | null>(null);
+  const [prediction, setPrediction] = useState("");
+  const testing = useRef(false);
   const [remaining, setRemaining] = useState(0);
   const [preview, setPreview] = useState<string | null>(null);
   const video = useRef<HTMLVideoElement>(null);
@@ -111,6 +115,7 @@ function App() {
     cancelAnimationFrame(animation.current);
     if (timer.current) clearTimeout(timer.current);
     frames.current = null;
+    setPrediction("");
     setRecording(false);
     setRemaining(0);
     stream.current?.getTracks().forEach((t) => t.stop());
@@ -257,6 +262,21 @@ function App() {
       );
       return;
     }
+    if (testing.current) {
+      try {
+        if (!recognizer) throw new Error("Carga un modelo primero.");
+        setPrediction(recognize(recognizer, captured));
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "No se pudo evaluar el intento.",
+        );
+      } finally {
+        setRecording(false);
+      }
+      return;
+    }
     const sample: Sample = {
       id: crypto.randomUUID(),
       label,
@@ -293,6 +313,8 @@ function App() {
     )
       return;
     setError("");
+    testing.current = false;
+    setPrediction("");
     frames.current = [];
     started.current = performance.now();
     setRemaining(3);
@@ -300,6 +322,37 @@ function App() {
     timer.current = setTimeout(() => {
       void finishCapture(letter, participant.trim(), session.trim());
     }, 3000);
+  }
+  function testRecognition() {
+    if (!active || !detected || recording || !recognizer) return;
+    setError("");
+    setPrediction("");
+    testing.current = true;
+    frames.current = [];
+    started.current = performance.now();
+    setRemaining(3);
+    setRecording(true);
+    timer.current = setTimeout(() => {
+      void finishCapture("", "", "");
+    }, 3000);
+  }
+  async function loadRecognitionModel(file: File) {
+    setError("");
+    setPrediction("");
+    setRecognizer(null);
+    try {
+      if (file.size > 5_000_000)
+        throw new Error("El modelo debe pesar menos de 5 MB.");
+      const loaded = parseModel(JSON.parse(await file.text()));
+      if (mounted.current) setRecognizer(loaded);
+    } catch (error) {
+      if (mounted.current)
+        setError(
+          error instanceof Error
+            ? error.message
+            : "No se pudo cargar el modelo.",
+        );
+    }
   }
   function changeTab(next: Tab) {
     stopCamera();
@@ -357,8 +410,8 @@ function App() {
           <>
             <h2>Capturar muestras</h2>
             <p className="notice">
-              En desarrollo: detecta la mano y guarda muestras. Todavía no
-              reconoce letras.
+              En desarrollo: captura muestras o carga un modelo para probar el
+              reconocimiento experimental.
             </p>
             <div className="workspace">
               <section className="panel">
@@ -459,7 +512,10 @@ function App() {
                   )}
                   {recording && (
                     <span className="recording">
-                      Capturando {letter} · {remaining}s
+                      {testing.current
+                        ? "Probando reconocimiento"
+                        : `Capturando ${letter}`}{" "}
+                      · {remaining}s
                     </span>
                   )}
                 </div>
@@ -491,6 +547,45 @@ function App() {
                       ? "Guardando intento…"
                       : `Capturar letra ${letter}`}
                   </button>
+                </div>
+                <div className="recognition">
+                  <label>
+                    Modelo de reconocimiento (.json)
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      disabled={recording}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void loadRecognitionModel(file);
+                      }}
+                    />
+                  </label>
+                  {recognizer && (
+                    <>
+                      <p>Modelo cargado: {recognizer.labels.join(", ")}.</p>
+                      <p className="help">
+                        {recognizer.personal
+                          ? "Demostración personal, sin medición de precisión."
+                          : "Reconocimiento experimental."}{" "}
+                        El resultado elige entre las letras del modelo; no
+                        valida si la seña está bien realizada ni descarta gestos
+                        ajenos al catálogo.
+                      </p>
+                      <button
+                        disabled={!active || !detected || recording}
+                        onClick={testRecognition}
+                      >
+                        Probar reconocimiento (3 s)
+                      </button>
+                    </>
+                  )}
+                  {prediction && (
+                    <p className="notice" role="status">
+                      Letra candidata: <strong>{prediction}</strong>. Resultado
+                      experimental.
+                    </p>
+                  )}
                 </div>
                 <p className="help">
                   Cada intento dura 3 segundos. Mantén una sola mano visible y

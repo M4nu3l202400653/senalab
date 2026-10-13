@@ -8,3 +8,10 @@
 - Inspección visual del laboratorio a 1440 px.
 
 Pendiente: capturar intentos con una mano real y cámara física, comprobar los archivos exportados de esas capturas, probar Chrome/Edge en los equipos destinatarios y validar referencias con una persona competente. La prueba de persistencia utiliza un registro sintético; no prueba calidad de señas ni reconocimiento de letras.
+
+## Reconocimiento personal A–F
+
+- Entrenamiento real local con 6 intentos (uno por letra), 36 cuadros cada uno, una persona y una sesión. No hay conjunto de prueba ni métricas de precisión.
+- 7 pruebas web y 5 pruebas Python aprobadas, compilación de producción aprobada.
+- Navegador: carga del modelo personal, preprocesamiento y probabilidades equivalentes a Python (tolerancia 1e-12) para las seis capturas; carga del detector con cámara simulada y rechazo de JSON incompatible.
+- Sigue pendiente probar nuevos intentos con cámara física. La equivalencia numérica no demuestra precisión ni validez de las etiquetas.

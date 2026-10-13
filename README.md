@@ -2,7 +2,7 @@
 
 Web app didáctica para el alfabeto de la Lengua de Señas de Guatemala (LENSEGUA). Versión 0.1: laboratorio de captura para preparar datos de entrenamiento.
 
-**Todavía no reconoce letras ni evalúa su ejecución.** Detecta manos con MediaPipe, guarda secuencias etiquetadas y las exporta para revisión/entrenamiento. Las referencias del alfabeto están pendientes de validación lingüística.
+**Prototipo experimental.** Detecta manos con MediaPipe, guarda secuencias etiquetadas y las exporta para revisión/entrenamiento. Permite cargar un modelo JSON y obtener una letra candidata por intento; no evalúa la corrección de la seña. Las referencias del alfabeto están pendientes de validación lingüística.
 
 ## Ejecutar la web
 
@@ -35,7 +35,21 @@ python -m unittest discover -s training/tests
 python training/train.py data/revisado.json --labels A,B,C --output training/artifacts
 ```
 
-Las letras del comando son un ejemplo, no una lista validada de letras estáticas. El script excluye intentos sin `reviewed: true`, exige al menos cuatro participantes y presencia de cada clase en ambos conjuntos. Cada intento es una observación. Reporta métricas por letra y participantes de cada conjunto; el modelo `joblib` es para Python y aún no se integra en la web. Nunca cargues modelos joblib de fuentes no confiables.
+Las letras del comando son un ejemplo, no una lista validada de letras estáticas. El script excluye intentos sin `reviewed: true`, exige al menos cuatro participantes y presencia de cada clase en ambos conjuntos. Cada intento es una observación. Reporta métricas por letra y participantes de cada conjunto; el modelo `joblib` es para Python. También genera `model.json`, que se carga en la web desde «Modelo de reconocimiento (.json)». Nunca cargues modelos joblib de fuentes no confiables.
+
+## Demostración personal con pocas muestras
+
+Para probar con una sola persona, usar explícitamente `--personal`:
+
+```bash
+python training/train.py data/personal-af.json --labels A,B,C,D,E,F --personal --output training/artifacts/personal-af
+```
+
+Este modo acepta las etiquetas del usuario sin modificar `reviewed` y entrena con todos los intentos. No genera métricas de precisión ni conjunto de prueba. Con un intento por letra sirve para comprobar el flujo, pero no garantiza reconocer nuevos intentos. La evaluación normal conserva la revisión obligatoria y la separación por persona.
+
+En la web, seleccionar `training/artifacts/personal-af/model.json`, activar la cámara y pulsar **Probar reconocimiento (3 s)**. No hace falta consentimiento de almacenamiento ni código de participante para probar: el intento se procesa temporalmente y no se guarda. El resultado elige una letra entre las clases del modelo; puede asignar una letra a gestos ajenos al catálogo. El archivo del modelo se carga de nuevo al recargar la página. No subir datos personales ni modelos derivados a GitHub.
+
+Para ampliar: recopilar intentos independientes, repetir sesiones y personas, revisar etiquetas y reentrenar. El modelo actual usa posiciones agregadas de letras estáticas; las señas con movimiento requieren otro enfoque.
 
 ## Estructura y plan
 

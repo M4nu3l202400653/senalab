@@ -25,6 +25,16 @@ class DatasetTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, '4 participantes'):
             split_by_person(np.array(['A', 'B']), np.array(['p1', 'p2']), ['A', 'B'])
 
+class PersonalModeTests(unittest.TestCase):
+    def test_explicit_personal_mode_accepts_user_labels(self):
+        points = [{'x': i / 30, 'y': i / 40, 'z': i / 80} for i in range(21)]
+        sample = {'label': 'A', 'participant': 'p1', 'reviewed': False, 'frames': [{'landmarks': points}] * 20}
+        data = {'schemaVersion': 1, 'language': 'LENSEGUA', 'samples': [sample]}
+        x, y, g = prepare(data, ['A'], allow_unreviewed=True)
+        self.assertEqual(x.shape, (1, 63))
+        self.assertEqual(list(y), ['A'])
+        self.assertEqual(list(g), ['p1'])
+
 
 if __name__ == '__main__':
     unittest.main()

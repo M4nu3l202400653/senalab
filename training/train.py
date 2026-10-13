@@ -24,12 +24,12 @@ def normalize(points):
     return (array / scale).flatten()
 
 
-def prepare(data, labels):
+def prepare(data, labels, allow_unreviewed=False):
     if data.get('schemaVersion') != 1 or data.get('language') != 'LENSEGUA':
         raise ValueError('Dataset incompatible: se requiere schemaVersion 1 y LENSEGUA')
     rows, targets, groups = [], [], []
     for sample in data['samples']:
-        if sample['label'] not in labels or sample.get('reviewed') is not True:
+        if sample['label'] not in labels or (sample.get('reviewed') is not True and not allow_unreviewed):
             continue
         if not str(sample.get('participant', '')).strip():
             raise ValueError('Cada intento necesita un código de participante')
@@ -56,29 +56,54 @@ def split_by_person(targets, groups, labels):
     raise ValueError('No se pudo separar por persona con todas las letras en ambos conjuntos; captura más participantes por letra')
 
 
+def export_browser_model(model, personal):
+    trees = []
+    for estimator in model.estimators_:
+        tree = estimator.tree_
+        trees.append({
+            'left': tree.children_left.tolist(), 'right': tree.children_right.tolist(),
+            'feature': tree.feature.tolist(), 'threshold': tree.threshold.tolist(),
+            'values': tree.value[:, 0, :].tolist(),
+        })
+    return {
+        'schemaVersion': 1, 'kind': 'senalab-random-forest',
+        'language': 'LENSEGUA', 'personal': personal,
+        'normalization': 'wrist-centered/max-euclidean-distance; median per attempt',
+        'labels': model.classes_.tolist(), 'trees': trees,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('dataset', type=Path)
     parser.add_argument('--labels', required=True, help='Letras estáticas validadas, separadas por coma: A,B,C')
     parser.add_argument('--output', type=Path, default=Path('training/artifacts'))
+    parser.add_argument('--personal', action='store_true', help='Demostración personal: entrena con todos los intentos, sin evaluar precisión ni exigir revisión lingüística')
     args = parser.parse_args()
     labels = [label.strip().upper() for label in args.labels.split(',')]
     if len(set(labels)) < 2 or len(labels) != len(set(labels)) or not set(labels) <= LETTERS:
         parser.error('Selecciona al menos dos letras válidas, sin duplicados')
     try:
         with args.dataset.open(encoding='utf-8') as file:
-            features, targets, groups = prepare(json.load(file), labels)
-        train, test = split_by_person(targets, groups, labels)
+            features, targets, groups = prepare(json.load(file), labels, allow_unreviewed=args.personal)
+        if args.personal:
+            if set(targets) != set(labels):
+                raise ValueError('Faltan intentos de alguna letra seleccionada')
+            train = np.arange(len(targets))
+            test = np.array([], dtype=int)
+        else:
+            train, test = split_by_person(targets, groups, labels)
     except (ValueError, KeyError, TypeError, OSError) as error:
         parser.error(str(error))
     model = RandomForestClassifier(n_estimators=300, class_weight='balanced', random_state=42, n_jobs=-1)
     model.fit(features[train], targets[train])
-    predicted = model.predict(features[test])
+    predicted = model.predict(features[test]) if len(test) else None
     report = {
-        'scope': 'Letras estáticas revisadas; no evalúa la corrección pedagógica',
-        'classification': classification_report(targets[test], predicted, labels=labels, output_dict=True, zero_division=0),
+        'scope': 'Demostración personal con etiquetas del usuario, sin validación lingüística ni medición de precisión' if args.personal else 'Letras estáticas revisadas; no evalúa la corrección pedagógica',
+        'personal': args.personal,
+        'classification': classification_report(targets[test], predicted, labels=labels, output_dict=True, zero_division=0) if len(test) else None,
         'labels': labels,
-        'confusionMatrix': confusion_matrix(targets[test], predicted, labels=labels).tolist(),
+        'confusionMatrix': confusion_matrix(targets[test], predicted, labels=labels).tolist() if len(test) else None,
         'trainParticipants': sorted(set(groups[train])),
         'testParticipants': sorted(set(groups[test])),
         'trainAttempts': len(train), 'testAttempts': len(test),
@@ -88,7 +113,8 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, args.output / 'baseline.joblib')
     (args.output / 'report.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
-    print(f'Baseline y reporte guardados en {args.output}. No está integrado en la web.')
+    (args.output / 'model.json').write_text(json.dumps(export_browser_model(model, args.personal)), encoding='utf-8')
+    print(f'Modelo Python, model.json para la web y reporte guardados en {args.output}.')
 
 
 if __name__ == '__main__':

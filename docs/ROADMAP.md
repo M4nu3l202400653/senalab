@@ -38,8 +38,8 @@ Salida: reporte por letra, matriz de confusión y resultados en personas nuevas.
 
 ## Fase 4 — Reconocimiento didáctico
 
-- [ ] Seleccionar/exportar un modelo compatible con navegador.
-- [ ] Mantener idéntico preprocesamiento entre Python y web y verificar paridad.
+- [x] Exportar un baseline Random Forest a JSON compatible con navegador (demo personal).
+- [x] Mantener idéntico preprocesamiento entre Python y web y verificar paridad.
 - [ ] Calibrar umbral con conjunto de desarrollo, incluir ejemplos fuera de catálogo y postura neutra.
 - [ ] Evaluar una secuencia por intento y permitir rechazo por evidencia insuficiente.
 - [ ] Registrar progreso; reconocer intención no equivale a evaluar ejecución correcta.
@@ -53,3 +53,7 @@ Salida: práctica real para letras soportadas con límites explícitos y medici�
 - [ ] Más vocabulario, cuentas y sincronización si el uso lo requiere.
 
 Salida: alfabeto ampliado, documentación y evaluación reproducible.
+
+## Piloto personal A–F
+
+Se habilita un modo experimental para una sola persona, incluso con un intento por letra. No usa prueba separada ni reporta precisión; no cambia la revisión de las muestras. La web muestra una candidata entre las clases cargadas, sin validar corrección ni rechazar gestos fuera del catálogo. Los datos y el modelo personal quedan fuera de Git.
