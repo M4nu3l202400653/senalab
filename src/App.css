@@ -177,19 +177,6 @@ td {
 th {
   background: #eff8f4;
 }
-.phases {
-  padding-left: 24px;
-}
-.phases li {
-  margin-bottom: 20px;
-  padding-left: 6px;
-}
-.phases p {
-  margin: 6px 0;
-}
-.phases small {
-  color: #526b62;
-}
 @media (max-width: 750px) {
   .workspace {
     grid-template-columns: 1fr;

@@ -4,52 +4,16 @@ import {
   FilesetResolver,
   HandLandmarker,
 } from "@mediapipe/tasks-vision";
-import {
-  LETTERS,
-  downloadDataset,
-  type Frame,
-  type Sample,
-} from "./lib/dataset";
+import { LETTERS, type Frame, type Sample } from "./lib/dataset";
 import { deleteSample, loadSamples, saveSample } from "./lib/storage";
-import { parseModel, recognize, type RecognitionModel } from "./lib/recognizer";
+import { recognize, type RecognitionModel } from "./lib/recognizer";
+import { modelRequest } from "./lib/api";
 import { REFERENCE_CROPS } from "./lib/references";
 import "./App.css";
 
-type Tab = "practice" | "recognition" | "dataset" | "roadmap";
-const phases = [
-  [
-    "01",
-    "Fundamentos y referencias",
-    "Definir el alfabeto de LENSEGUA, documentar fuentes y validar cada seña con una persona competente.",
-    "En curso",
-  ],
-  [
-    "02",
-    "Web y captura de muestras",
-    "Cámara, puntos de la mano, intentos etiquetados y exportación para Python.",
-    "Base implementada",
-  ],
-  [
-    "03",
-    "Entrenamiento y evaluación",
-    "Comparar modelos para letras estáticas y evaluar con participantes que no aparezcan en entrenamiento.",
-    "Próxima fase",
-  ],
-  [
-    "04",
-    "Práctica con reconocimiento",
-    "Integrar el modelo, umbral de aceptación y resultados por intento.",
-    "Pendiente",
-  ],
-  [
-    "05",
-    "Alfabeto y movimientos",
-    "Incorporar secuencias, ampliar el vocabulario y mejorar con pruebas de uso.",
-    "Pendiente",
-  ],
-];
+type Tab = "practice" | "recognition" | "dataset";
 function App() {
-  const [tab, setTab] = useState<Tab>("practice");
+  const [tab, setTab] = useState<Tab>("recognition");
   const [letter, setLetter] = useState("A");
   const [participant, setParticipant] = useState("");
   const [session, setSession] = useState(() =>
@@ -65,6 +29,12 @@ function App() {
   const [detected, setDetected] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recognizer, setRecognizer] = useState<RecognitionModel | null>(null);
+  const [modelSource, setModelSource] = useState<"initial" | "personal" | null>(
+    null,
+  );
+  const [modelReady, setModelReady] = useState(false);
+  const [training, setTraining] = useState(false);
+  const [message, setMessage] = useState("");
   const [prediction, setPrediction] = useState("");
   const testing = useRef(false);
   const [remaining, setRemaining] = useState(0);
@@ -91,8 +61,26 @@ function App() {
       .catch(() => {
         if (mounted.current)
           setError(
-            "No se pudo abrir el almacenamiento. Habilita los datos del sitio para guardar muestras.",
+            "No se pudo conectar al almacenamiento del servidor. Inicia la aplicación con npm run dev y recarga.",
           );
+      });
+    modelRequest()
+      .then((result) => {
+        if (mounted.current) {
+          setRecognizer(result.model);
+          setModelSource(result.source);
+          setModelReady(true);
+        }
+      })
+      .catch((error) => {
+        if (mounted.current) {
+          setModelReady(true);
+          setError(
+            error instanceof Error
+              ? error.message
+              : "No se pudo cargar el modelo del servidor.",
+          );
+        }
       });
     return () => {
       mounted.current = false;
@@ -258,7 +246,10 @@ function App() {
     }
     if (testing.current) {
       try {
-        if (!recognizer) throw new Error("Carga un modelo primero.");
+        if (!recognizer)
+          throw new Error(
+            "No hay un modelo disponible. Entrena con tus muestras primero.",
+          );
         setPrediction(recognize(recognizer, captured));
       } catch (error) {
         setError(
@@ -289,7 +280,7 @@ function App() {
     } catch {
       if (mounted.current)
         setError(
-          "No se pudo guardar el intento. Revisa el espacio disponible y vuelve a capturar.",
+          "No se pudo guardar el intento en el servidor. Revisa que la aplicación esté iniciada y vuelve a capturar.",
         );
     } finally {
       if (mounted.current) setRecording(false);
@@ -330,28 +321,63 @@ function App() {
       void finishCapture("", "", "");
     }, 3000);
   }
-  async function loadRecognitionModel(file: File) {
+  async function trainPersonalModel() {
+    if (training || recording) return;
+    stopCamera();
+    setTraining(true);
     setError("");
-    setPrediction("");
-    setRecognizer(null);
+    setMessage("");
     try {
-      if (file.size > 5_000_000)
-        throw new Error("El modelo debe pesar menos de 5 MB.");
-      const loaded = parseModel(JSON.parse(await file.text()));
-      if (mounted.current) setRecognizer(loaded);
+      const result = await modelRequest("POST", "/train");
+      if (mounted.current) {
+        setRecognizer(result.model);
+        setModelSource(result.source);
+        setMessage(
+          `Modelo personal entrenado con ${result.attempts} intentos y guardado. Ya puedes probarlo en Reconocimiento.`,
+        );
+      }
     } catch (error) {
       if (mounted.current)
         setError(
           error instanceof Error
             ? error.message
-            : "No se pudo cargar el modelo.",
+            : "No se pudo entrenar el modelo.",
         );
+    } finally {
+      if (mounted.current) setTraining(false);
+    }
+  }
+  async function useInitialModel() {
+    if (training || recording) return;
+    stopCamera();
+    setTraining(true);
+    setError("");
+    setMessage("");
+    try {
+      const result = await modelRequest("DELETE");
+      if (mounted.current) {
+        setRecognizer(result.model);
+        setModelSource(result.source);
+        setMessage(
+          "Se seleccionó el modelo inicial. Tus muestras se conservan.",
+        );
+      }
+    } catch (error) {
+      if (mounted.current)
+        setError(
+          error instanceof Error
+            ? error.message
+            : "No se pudo cambiar el modelo.",
+        );
+    } finally {
+      if (mounted.current) setTraining(false);
     }
   }
   function changeTab(next: Tab) {
     stopCamera();
     setTab(next);
     setError("");
+    setMessage("");
   }
   async function removeSample(id: string) {
     try {
@@ -374,28 +400,25 @@ function App() {
       </header>
       <nav aria-label="Navegación principal">
         <button
+          disabled={training || recording}
           aria-pressed={tab === "practice"}
           onClick={() => changeTab("practice")}
         >
           Capturar muestras
         </button>
         <button
+          disabled={training || recording}
           aria-pressed={tab === "recognition"}
           onClick={() => changeTab("recognition")}
         >
           Reconocimiento
         </button>
         <button
+          disabled={training || recording}
           aria-pressed={tab === "dataset"}
           onClick={() => changeTab("dataset")}
         >
           Mis muestras ({samples.length})
-        </button>
-        <button
-          aria-pressed={tab === "roadmap"}
-          onClick={() => changeTab("roadmap")}
-        >
-          Fases del proyecto
         </button>
       </nav>
       <main>
@@ -407,6 +430,11 @@ function App() {
             </button>
           </div>
         )}
+        {message && (
+          <p className="notice" role="status">
+            {message}
+          </p>
+        )}
         {(tab === "practice" || tab === "recognition") && (
           <>
             <h2>
@@ -415,7 +443,7 @@ function App() {
             <p className="notice">
               {tab === "practice"
                 ? "Guarda intentos etiquetados para entrenar el modelo."
-                : "Carga tu modelo, activa la cámara y prueba una seña durante 3 segundos. El intento no se guarda."}
+                : "Activa la cámara y prueba una seña durante 3 segundos. Puedes usar el modelo inicial o entrenar uno personal; probar no guarda el intento."}
             </p>
             <div className="workspace">
               {tab === "practice" ? (
@@ -508,43 +536,74 @@ function App() {
                       disabled={recording}
                       onChange={(e) => setConsent(e.target.checked)}
                     />
-                    Acepto guardar los puntos de mi mano en este navegador. No
-                    se guardan imágenes ni audio.
+                    Acepto guardar los puntos de mi mano en el servidor de la
+                    aplicación. No se guardan imágenes ni audio.
                   </label>
                 </section>
               ) : (
                 <section className="panel">
                   <h3>Modelo</h3>
-                  <p className="help">
-                    Para la prueba personal A–F, selecciona el archivo
-                    senalab-modelo-personal-af.json de Descargas.
-                  </p>
                   <div className="recognition">
-                    <label>
-                      Modelo de reconocimiento (.json)
-                      <input
-                        type="file"
-                        accept=".json,application/json"
-                        disabled={recording}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) void loadRecognitionModel(file);
-                        }}
-                      />
-                    </label>
+                    {!modelReady && <p>Cargando modelo…</p>}
+                    {modelReady && !recognizer && (
+                      <p>
+                        No hay un modelo disponible. Captura muestras de al
+                        menos dos letras y entrena tu modelo personal.
+                      </p>
+                    )}
                     {recognizer && (
                       <>
-                        <p>Modelo cargado: {recognizer.labels.join(", ")}.</p>
+                        <p>
+                          <strong>
+                            {modelSource === "personal"
+                              ? "Tu modelo personal"
+                              : "Modelo inicial del prototipo"}
+                          </strong>
+                          <br />
+                          Letras: {recognizer.labels.join(", ")}.
+                        </p>
                         <p className="help">
-                          {recognizer.personal
-                            ? "Demostración personal, sin medición de precisión."
-                            : "Reconocimiento experimental."}{" "}
+                          {modelSource === "initial"
+                            ? "Piloto A–F entrenado con una sola persona; aún no validado con otros usuarios."
+                            : "Modelo personal experimental, sin medición de precisión."}{" "}
                           El resultado elige entre las letras del modelo; no
                           valida si la seña está bien realizada ni descarta
                           gestos ajenos al catálogo.
                         </p>
                       </>
                     )}
+                    <p>
+                      Personalizar es opcional. Captura muestras de tu mano y
+                      entrena cuando quieras.
+                    </p>
+                    <div className="actions">
+                      <button
+                        disabled={training || recording}
+                        onClick={() => changeTab("practice")}
+                      >
+                        Capturar mis muestras
+                      </button>
+                      <button
+                        className="primary"
+                        disabled={
+                          training ||
+                          recording ||
+                          !storageReady ||
+                          new Set(samples.map((s) => s.label)).size < 2
+                        }
+                        onClick={() => void trainPersonalModel()}
+                      >
+                        {training ? "Entrenando…" : "Entrenar con mis muestras"}
+                      </button>
+                      {modelSource === "personal" && (
+                        <button
+                          disabled={training || recording}
+                          onClick={() => void useInitialModel()}
+                        >
+                          Usar modelo inicial
+                        </button>
+                      )}
+                    </div>
                     {prediction && (
                       <p className="notice" role="status">
                         Letra candidata: <strong>{prediction}</strong>.
@@ -585,7 +644,10 @@ function App() {
                       Apagar cámara
                     </button>
                   ) : (
-                    <button onClick={() => void startCamera()}>
+                    <button
+                      disabled={training}
+                      onClick={() => void startCamera()}
+                    >
                       Activar cámara
                     </button>
                   )}
@@ -611,7 +673,11 @@ function App() {
                     <button
                       className="primary"
                       disabled={
-                        !recognizer || !active || !detected || recording
+                        !recognizer ||
+                        !active ||
+                        !detected ||
+                        recording ||
+                        training
                       }
                       onClick={testRecognition}
                     >
@@ -630,17 +696,24 @@ function App() {
         {tab === "dataset" && (
           <>
             <h2>Mis muestras</h2>
-            <p>{samples.length} intentos guardados en esta computadora.</p>
+            <p>
+              {samples.length} intentos guardados en el servidor de la
+              aplicación.
+            </p>
             <p className="notice">
-              Muestras pendientes de revisión. Exporta un respaldo antes de
-              borrar los datos del navegador.
+              Estas muestras se guardan en el programa y se usan para tu modelo
+              personal. Las etiquetas están pendientes de revisión.
             </p>
             <button
               className="primary"
-              disabled={!samples.length}
-              onClick={() => downloadDataset(samples)}
+              disabled={
+                training ||
+                !storageReady ||
+                new Set(samples.map((s) => s.label)).size < 2
+              }
+              onClick={() => void trainPersonalModel()}
             >
-              Exportar JSON
+              {training ? "Entrenando…" : "Entrenar con mis muestras"}
             </button>
             {samples.length ? (
               <div className="table-scroll">
@@ -674,20 +747,6 @@ function App() {
             ) : (
               <p>No hay muestras. Puedes empezar en «Capturar muestras».</p>
             )}
-          </>
-        )}
-        {tab === "roadmap" && (
-          <>
-            <h2>Fases del proyecto</h2>
-            <ol className="phases">
-              {phases.map(([n, title, description, state]) => (
-                <li key={n}>
-                  <h3>{title}</h3>
-                  <p>{description}</p>
-                  <small>{state}</small>
-                </li>
-              ))}
-            </ol>
           </>
         )}
       </main>

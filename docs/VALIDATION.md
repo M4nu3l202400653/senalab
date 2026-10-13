@@ -15,3 +15,10 @@ Pendiente: capturar intentos con una mano real y cámara física, comprobar los 
 - 7 pruebas web y 5 pruebas Python aprobadas, compilación de producción aprobada.
 - Navegador: carga del modelo personal, preprocesamiento y probabilidades equivalentes a Python (tolerancia 1e-12) para las seis capturas; carga del detector con cámara simulada y rechazo de JSON incompatible.
 - Sigue pendiente probar nuevos intentos con cámara física. La equivalencia numérica no demuestra precisión ni validez de las etiquetas.
+
+## Entrenamiento y almacenamiento integrados
+
+- 5 pruebas API/SQLite: aislamiento por perfil, deduplicación, eliminación, importación atómica, validación de muestras, entrenamiento con dos clases, persistencia al reabrir, modelo inicial y acceso HTTP por token de perfil.
+- 7 pruebas web y 5 pruebas de entrenamiento aprobadas. Build TypeScript/producción aprobado.
+- Prueba de navegador con API real y base temporal: copia de seis capturas desde IndexedDB, entrenamiento mediante botón, recuperación de modelo y muestras tras recarga, vuelta al modelo inicial sin borrar muestras, borrado individual, carga del detector con cámara simulada y otro perfil sin acceso a las muestras personales.
+- Sin subida/descarga de JSON en el flujo, ni pestaña de fases. Sigue pendiente evaluar nuevos intentos con cámara física y más personas.

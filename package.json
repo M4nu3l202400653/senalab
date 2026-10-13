@@ -4,11 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "dev:web": "vite",
+    "test:server": ".venv/bin/python -m unittest discover -s server/tests"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "1.1.0",

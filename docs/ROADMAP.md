@@ -18,7 +18,7 @@ Salida: catálogo validado. Las 27 etiquetas actuales son candidatas del alfabet
 - [x] Selección de letra, recorte automático de la lámina del equipo y enlace a fuentes.
 - [x] Cámara y detector MediaPipe con 21 puntos por mano.
 - [x] Captura de intentos de 3 segundos con participante y sesión.
-- [x] IndexedDB, listado, eliminación individual y exportación JSON.
+- [x] SQLite en servidor, listado, eliminación individual y migración de capturas previas desde IndexedDB.
 - [x] Mensajes para permisos, errores y capturas incompletas.
 - [x] Pruebas de normalización, formato y separación por persona; plantilla de CI.
 - [ ] Probar con cámara física en Chrome/Edge y distintas computadoras.
@@ -57,3 +57,13 @@ Salida: alfabeto ampliado, documentación y evaluación reproducible.
 ## Piloto personal A–F
 
 Se habilita un modo experimental para una sola persona, incluso con un intento por letra. No usa prueba separada ni reporta precisión; no cambia la revisión de las muestras. La web muestra una candidata entre las clases cargadas, sin validar corrección ni rechazar gestos fuera del catálogo. Los datos y el modelo personal quedan fuera de Git.
+
+## Flujo integrado del prototipo
+
+- [x] Abrir Reconocimiento con modelo inicial o personal cargado automáticamente.
+- [x] Personalización opcional por botón desde la web, sin archivos manuales.
+- [x] Guardar muestras y modelos por perfil anónimo en SQLite.
+- [x] Migrar muestras de la versión anterior sin borrar el original.
+- [x] Quitar las fases de la interfaz; conservar este plan técnico.
+- [ ] Reconocimiento continuo, suavizado temporal y ejecución en worker; hoy se usan intentos de 3 segundos.
+- [ ] Despliegue de API, cuentas y persistencia para múltiples usuarios.

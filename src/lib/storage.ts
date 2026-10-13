@@ -1,38 +1,19 @@
 import type { Sample } from "./dataset";
-function open(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open("senalab", 1);
-    request.onupgradeneeded = () =>
-      request.result.createObjectStore("samples", { keyPath: "id" });
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+import { request } from "./api";
+import { loadSamples as loadLegacySamples } from "./legacyStorage";
+export async function loadSamples(): Promise<Sample[]> {
+  // Copiar una sola vez los datos de la versión anterior, conservando el original.
+  // INSERT OR IGNORE hace que los montajes dobles de React no dupliquen intentos.
+  await request<Sample[]>("/samples");
+  if (!localStorage.getItem("senalab-server-migrated")) {
+    const legacy = await loadLegacySamples();
+    for (let start = 0; start < legacy.length; start += 50) {
+      await request("/samples", "POST", legacy.slice(start, start + 50));
+    }
+    localStorage.setItem("senalab-server-migrated", "1");
+  }
+  return request<Sample[]>("/samples");
 }
-async function transact<T>(
-  mode: IDBTransactionMode,
-  action: (store: IDBObjectStore) => IDBRequest<T>,
-): Promise<T> {
-  const db = await open();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction("samples", mode);
-    const request = action(tx.objectStore("samples"));
-    tx.oncomplete = () => {
-      db.close();
-      resolve(request.result);
-    };
-    tx.onerror = () => {
-      db.close();
-      reject(tx.error);
-    };
-    tx.onabort = () => {
-      db.close();
-      reject(tx.error);
-    };
-  });
-}
-export const loadSamples = () =>
-  transact("readonly", (store) => store.getAll()) as Promise<Sample[]>;
 export const saveSample = (sample: Sample) =>
-  transact("readwrite", (store) => store.add(sample));
-export const deleteSample = (id: string) =>
-  transact("readwrite", (store) => store.delete(id));
+  request("/samples", "POST", [sample]);
+export const deleteSample = (id: string) => request(`/samples/${id}`, "DELETE");
