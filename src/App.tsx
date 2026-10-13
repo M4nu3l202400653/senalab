@@ -15,7 +15,7 @@ import { parseModel, recognize, type RecognitionModel } from "./lib/recognizer";
 import { REFERENCE_CROPS } from "./lib/references";
 import "./App.css";
 
-type Tab = "practice" | "dataset" | "roadmap";
+type Tab = "practice" | "recognition" | "dataset" | "roadmap";
 const phases = [
   [
     "01",
@@ -380,6 +380,12 @@ function App() {
           Capturar muestras
         </button>
         <button
+          aria-pressed={tab === "recognition"}
+          onClick={() => changeTab("recognition")}
+        >
+          Reconocimiento
+        </button>
+        <button
           aria-pressed={tab === "dataset"}
           onClick={() => changeTab("dataset")}
         >
@@ -401,101 +407,153 @@ function App() {
             </button>
           </div>
         )}
-        {tab === "practice" && (
+        {(tab === "practice" || tab === "recognition") && (
           <>
-            <h2>Capturar muestras</h2>
+            <h2>
+              {tab === "practice" ? "Capturar muestras" : "Reconocimiento"}
+            </h2>
             <p className="notice">
-              En desarrollo: captura muestras o carga un modelo para probar el
-              reconocimiento experimental.
+              {tab === "practice"
+                ? "Guarda intentos etiquetados para entrenar el modelo."
+                : "Carga tu modelo, activa la cámara y prueba una seña durante 3 segundos. El intento no se guarda."}
             </p>
             <div className="workspace">
-              <section className="panel">
-                <label className="letter-select">
-                  Letra
-                  <select
-                    aria-label="Letra"
-                    value={letter}
-                    disabled={recording}
-                    onChange={(e) => {
-                      setLetter(e.target.value);
-                    }}
-                  >
-                    {LETTERS.map((l) => (
-                      <option key={l} value={l}>
-                        {l}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <p>
-                  {letterCount} intentos guardados para {letter}.
-                </p>
-                <div className="reference">
-                  <h3>Referencia: {letter}</h3>
-                  {crop ? (
-                    <svg
-                      className="reference-crop"
-                      viewBox={REFERENCE_CROPS[letter]}
-                      role="img"
-                      aria-label={`Referencia de la letra ${letter} de la lámina del equipo`}
+              {tab === "practice" ? (
+                <section className="panel">
+                  <label className="letter-select">
+                    Letra
+                    <select
+                      aria-label="Letra"
+                      value={letter}
+                      disabled={recording}
+                      onChange={(e) => {
+                        setLetter(e.target.value);
+                      }}
                     >
-                      <defs>
-                        <clipPath id="reference-clip">
-                          <rect x={crop[0]} y={crop[1]} width={crop[2]} height={crop[3]} />
-                        </clipPath>
-                      </defs>
-                      <image
-                        clipPath="url(#reference-clip)"
-                        href="/alfabeto-referencia.jpeg"
-                        width="460"
-                        height="667"
-                      />
-                    </svg>
-                  ) : (
-                    <p>La lámina no incluye la letra {letter}.</p>
-                  )}
-                  <p className="help">
-                    Lámina proporcionada por el equipo, pendiente de validación
-                    para LENSEGUA. Las imágenes fijas no muestran movimientos.
+                      {LETTERS.map((l) => (
+                        <option key={l} value={l}>
+                          {l}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p>
+                    {letterCount} intentos guardados para {letter}.
                   </p>
-                </div>
-                <a
-                  href="https://conadi.gob.gt/web/lensegua/"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Recursos de CONADI
-                </a>
-                <label>
-                  Código de participante
-                  <input
-                    value={participant}
-                    disabled={recording}
-                    onChange={(e) => setParticipant(e.target.value)}
-                    placeholder="persona-01"
-                    maxLength={60}
-                  />
-                </label>
-                <label>
-                  Sesión
-                  <input
-                    value={session}
-                    disabled={recording}
-                    onChange={(e) => setSession(e.target.value)}
-                    maxLength={60}
-                  />
-                </label>
-                <label className="checkbox">
-                  <input
-                    type="checkbox"
-                    checked={consent}
-                    disabled={recording}
-                    onChange={(e) => setConsent(e.target.checked)}
-                  />
-                  Acepto guardar los puntos de mi mano en este navegador. No se
-                  guardan imágenes ni audio.
-                </label>
-              </section>
+                  <div className="reference">
+                    <h3>Referencia: {letter}</h3>
+                    {crop ? (
+                      <svg
+                        className="reference-crop"
+                        viewBox={REFERENCE_CROPS[letter]}
+                        role="img"
+                        aria-label={`Referencia de la letra ${letter} de la lámina del equipo`}
+                      >
+                        <defs>
+                          <clipPath id="reference-clip">
+                            <rect
+                              x={crop[0]}
+                              y={crop[1]}
+                              width={crop[2]}
+                              height={crop[3]}
+                            />
+                          </clipPath>
+                        </defs>
+                        <image
+                          clipPath="url(#reference-clip)"
+                          href="/alfabeto-referencia.jpeg"
+                          width="460"
+                          height="667"
+                        />
+                      </svg>
+                    ) : (
+                      <p>La lámina no incluye la letra {letter}.</p>
+                    )}
+                    <p className="help">
+                      Lámina proporcionada por el equipo, pendiente de
+                      validación para LENSEGUA. Las imágenes fijas no muestran
+                      movimientos.
+                    </p>
+                  </div>
+                  <a
+                    href="https://conadi.gob.gt/web/lensegua/"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Recursos de CONADI
+                  </a>
+                  <label>
+                    Código de participante
+                    <input
+                      value={participant}
+                      disabled={recording}
+                      onChange={(e) => setParticipant(e.target.value)}
+                      placeholder="persona-01"
+                      maxLength={60}
+                    />
+                  </label>
+                  <label>
+                    Sesión
+                    <input
+                      value={session}
+                      disabled={recording}
+                      onChange={(e) => setSession(e.target.value)}
+                      maxLength={60}
+                    />
+                  </label>
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={consent}
+                      disabled={recording}
+                      onChange={(e) => setConsent(e.target.checked)}
+                    />
+                    Acepto guardar los puntos de mi mano en este navegador. No
+                    se guardan imágenes ni audio.
+                  </label>
+                </section>
+              ) : (
+                <section className="panel">
+                  <h3>Modelo</h3>
+                  <p className="help">
+                    Para la prueba personal A–F, selecciona el archivo
+                    senalab-modelo-personal-af.json de Descargas.
+                  </p>
+                  <div className="recognition">
+                    <label>
+                      Modelo de reconocimiento (.json)
+                      <input
+                        type="file"
+                        accept=".json,application/json"
+                        disabled={recording}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void loadRecognitionModel(file);
+                        }}
+                      />
+                    </label>
+                    {recognizer && (
+                      <>
+                        <p>Modelo cargado: {recognizer.labels.join(", ")}.</p>
+                        <p className="help">
+                          {recognizer.personal
+                            ? "Demostración personal, sin medición de precisión."
+                            : "Reconocimiento experimental."}{" "}
+                          El resultado elige entre las letras del modelo; no
+                          valida si la seña está bien realizada ni descarta
+                          gestos ajenos al catálogo.
+                        </p>
+                      </>
+                    )}
+                    {prediction && (
+                      <p className="notice" role="status">
+                        Letra candidata: <strong>{prediction}</strong>.
+                        Resultado experimental.
+                      </p>
+                    )}
+                  </div>
+                </section>
+              )}
               <section className="panel">
                 <h3>Cámara</h3>
                 <div className="camera-view">
@@ -531,61 +589,34 @@ function App() {
                       Activar cámara
                     </button>
                   )}
-                  <button
-                    className="primary"
-                    onClick={capture}
-                    disabled={
-                      !active ||
-                      !detected ||
-                      recording ||
-                      !participant.trim() ||
-                      !session.trim() ||
-                      !consent ||
-                      !storageReady
-                    }
-                  >
-                    {recording
-                      ? "Guardando intento…"
-                      : `Capturar letra ${letter}`}
-                  </button>
-                </div>
-                <div className="recognition">
-                  <label>
-                    Modelo de reconocimiento (.json)
-                    <input
-                      type="file"
-                      accept=".json,application/json"
-                      disabled={recording}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) void loadRecognitionModel(file);
-                      }}
-                    />
-                  </label>
-                  {recognizer && (
-                    <>
-                      <p>Modelo cargado: {recognizer.labels.join(", ")}.</p>
-                      <p className="help">
-                        {recognizer.personal
-                          ? "Demostración personal, sin medición de precisión."
-                          : "Reconocimiento experimental."}{" "}
-                        El resultado elige entre las letras del modelo; no
-                        valida si la seña está bien realizada ni descarta gestos
-                        ajenos al catálogo.
-                      </p>
-                      <button
-                        disabled={!active || !detected || recording}
-                        onClick={testRecognition}
-                      >
-                        Probar reconocimiento (3 s)
-                      </button>
-                    </>
-                  )}
-                  {prediction && (
-                    <p className="notice" role="status">
-                      Letra candidata: <strong>{prediction}</strong>. Resultado
-                      experimental.
-                    </p>
+                  {tab === "practice" ? (
+                    <button
+                      className="primary"
+                      onClick={capture}
+                      disabled={
+                        !active ||
+                        !detected ||
+                        recording ||
+                        !participant.trim() ||
+                        !session.trim() ||
+                        !consent ||
+                        !storageReady
+                      }
+                    >
+                      {recording
+                        ? "Guardando intento…"
+                        : `Capturar letra ${letter}`}
+                    </button>
+                  ) : (
+                    <button
+                      className="primary"
+                      disabled={
+                        !recognizer || !active || !detected || recording
+                      }
+                      onClick={testRecognition}
+                    >
+                      {recording ? "Probando…" : "Probar reconocimiento (3 s)"}
+                    </button>
                   )}
                 </div>
                 <p className="help">

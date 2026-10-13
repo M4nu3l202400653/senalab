@@ -47,7 +47,7 @@ python training/train.py data/personal-af.json --labels A,B,C,D,E,F --personal -
 
 Este modo acepta las etiquetas del usuario sin modificar `reviewed` y entrena con todos los intentos. No genera métricas de precisión ni conjunto de prueba. Con un intento por letra sirve para comprobar el flujo, pero no garantiza reconocer nuevos intentos. La evaluación normal conserva la revisión obligatoria y la separación por persona.
 
-En la web, seleccionar `training/artifacts/personal-af/model.json`, activar la cámara y pulsar **Probar reconocimiento (3 s)**. No hace falta consentimiento de almacenamiento ni código de participante para probar: el intento se procesa temporalmente y no se guarda. El resultado elige una letra entre las clases del modelo; puede asignar una letra a gestos ajenos al catálogo. El archivo del modelo se carga de nuevo al recargar la página. No subir datos personales ni modelos derivados a GitHub.
+En la pestaña **Reconocimiento**, seleccionar `training/artifacts/personal-af/model.json`, activar la cámara y pulsar **Probar reconocimiento (3 s)**. No hace falta consentimiento de almacenamiento ni código de participante para probar: el intento se procesa temporalmente y no se guarda. El resultado elige una letra entre las clases del modelo; puede asignar una letra a gestos ajenos al catálogo. El archivo del modelo se carga de nuevo al recargar la página. No subir datos personales ni modelos derivados a GitHub.
 
 Para ampliar: recopilar intentos independientes, repetir sesiones y personas, revisar etiquetas y reentrenar. El modelo actual usa posiciones agregadas de letras estáticas; las señas con movimiento requieren otro enfoque.
 
