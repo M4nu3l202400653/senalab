@@ -28,3 +28,10 @@ Pendiente: capturar intentos con una mano real y cámara física, comprobar los 
 - Build de producción y 6 pruebas API aprobados; prueba adicional de persistencia de foto opcional y rechazo de formato/cuadro inválido.
 - Navegador con API real y base temporal: visor de muestras antiguas (21 puntos), deslizador, reproducción y cierre; foto JPEG de prueba asociada a su cuadro, vuelta a puntos en otros cuadros y opción de foto desactivada por defecto con consentimiento actualizado al activarla.
 - La foto no se usa para entrenar. Las capturas antiguas no tienen fotografías recuperables. Falta probar la foto de una captura nueva con cámara física y revisar casos reales de confusión entre letras.
+
+## Recolección local en equipo
+
+- 7 pruebas API y 7 pruebas web aprobadas; build de producción aprobado.
+- Prueba de navegador con API y base temporal: importación de dos participantes, reimportación sin duplicados, preservación de UUID/código, exportación de puntos sin fotos por defecto y con fotos al optar por incluirlas, rechazo de otro identificador de lengua y recuperación tras recarga.
+- Cada archivo se valida y guarda de forma atómica; no se reentrena al importar.
+- Instrucciones de instalación y captura para seis personas en docs/TEAM_COLLECTION.md. Los datos reales no se suben al repositorio.

@@ -17,3 +17,10 @@ export async function loadSamples(): Promise<Sample[]> {
 export const saveSample = (sample: Sample) =>
   request("/samples", "POST", [sample]);
 export const deleteSample = (id: string) => request(`/samples/${id}`, "DELETE");
+
+export const importDataset = (value: unknown) =>
+  request<{ added: number; duplicates: number }>(
+    "/samples/import",
+    "POST",
+    value,
+  );

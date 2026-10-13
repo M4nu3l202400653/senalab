@@ -87,6 +87,24 @@ class ServerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'JPEG'):
             self.store.put_samples(self.p1, [invalid])
 
+    def test_team_import_preserves_identity_and_skips_duplicates(self):
+        one, two = sample('A'), sample('B')
+        one['participant'], two['participant'] = 'P02', 'P03'
+        data = {'schemaVersion': 1, 'language': 'LENSEGUA', 'samples': [one, two]}
+        self.assertEqual(self.store.import_dataset(self.p1, data), {'added': 2, 'duplicates': 0})
+        self.assertEqual(self.store.import_dataset(self.p1, data), {'added': 0, 'duplicates': 2})
+        stored = self.store.samples(self.p1)
+        self.assertEqual({s['participant'] for s in stored}, {'P02', 'P03'})
+        self.assertEqual({s['id'] for s in stored}, {one['id'], two['id']})
+        self.assertEqual(self.store.samples(self.p2), [])
+        with self.assertRaisesRegex(ValueError, 'incompatible'):
+            self.store.import_dataset(self.p1, {**data, 'language': 'ASL'})
+        invalid = sample()
+        invalid['frames'] = []
+        with self.assertRaises(ValueError):
+            self.store.import_dataset(self.p1, {**data, 'samples': [sample(), invalid]})
+        self.assertEqual(len(self.store.samples(self.p1)), 2)
+
     def test_http_requires_profile_and_persists_samples(self):
         server = ThreadingHTTPServer(('127.0.0.1', 0), handler_for(self.store))
         thread = threading.Thread(target=server.serve_forever, daemon=True)

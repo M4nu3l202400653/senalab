@@ -4,8 +4,18 @@ import {
   FilesetResolver,
   HandLandmarker,
 } from "@mediapipe/tasks-vision";
-import { LETTERS, type Frame, type Sample } from "./lib/dataset";
-import { deleteSample, loadSamples, saveSample } from "./lib/storage";
+import {
+  LETTERS,
+  downloadDataset,
+  type Frame,
+  type Sample,
+} from "./lib/dataset";
+import {
+  deleteSample,
+  loadSamples,
+  saveSample,
+  importDataset,
+} from "./lib/storage";
 import { recognize, type RecognitionModel } from "./lib/recognizer";
 import { modelRequest } from "./lib/api";
 import { REFERENCE_CROPS } from "./lib/references";
@@ -39,6 +49,8 @@ function App() {
   );
   const [modelReady, setModelReady] = useState(false);
   const [training, setTraining] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [includePhotos, setIncludePhotos] = useState(false);
   const [message, setMessage] = useState("");
   const [prediction, setPrediction] = useState("");
   const testing = useRef(false);
@@ -358,7 +370,7 @@ function App() {
     }, 3000);
   }
   async function trainPersonalModel() {
-    if (training || recording) return;
+    if (training || importing || recording) return;
     stopCamera();
     setTraining(true);
     setError("");
@@ -384,7 +396,7 @@ function App() {
     }
   }
   async function useInitialModel() {
-    if (training || recording) return;
+    if (training || importing || recording) return;
     stopCamera();
     setTraining(true);
     setError("");
@@ -407,6 +419,49 @@ function App() {
         );
     } finally {
       if (mounted.current) setTraining(false);
+    }
+  }
+  async function importFiles(files: File[]) {
+    if (training || importing || recording) return;
+    setImporting(true);
+    setError("");
+    setMessage("");
+    let added = 0,
+      duplicates = 0,
+      completed = 0;
+    try {
+      for (const file of files) {
+        if (file.size > 50_000_000)
+          throw new Error(
+            `${file.name}: el archivo supera 50 MB. Exporta sin fotos o divide la recolección.`,
+          );
+        let value;
+        try {
+          value = JSON.parse(await file.text());
+        } catch {
+          throw new Error(`${file.name}: no contiene JSON válido.`);
+        }
+        const result = await importDataset(value);
+        added += result.added;
+        duplicates += result.duplicates;
+        completed++;
+      }
+      setMessage(
+        `Importación terminada: ${added} intentos nuevos, ${duplicates} duplicados omitidos. Reentrena para incorporarlos al modelo.`,
+      );
+    } catch (error) {
+      setError(
+        `${error instanceof Error ? error.message : "No se pudieron importar las muestras."} ${completed ? `${completed} archivos anteriores ya se importaron (${added} intentos nuevos).` : "No se importó ningún archivo."}`,
+      );
+    } finally {
+      try {
+        setSamples(await loadSamples());
+      } catch {
+        setError(
+          "No se pudo actualizar la lista de muestras. Recarga para consultar lo guardado.",
+        );
+      }
+      setImporting(false);
     }
   }
   function changeTab(next: Tab) {
@@ -438,21 +493,21 @@ function App() {
       </header>
       <nav aria-label="Navegación principal">
         <button
-          disabled={training || recording}
+          disabled={training || importing || recording}
           aria-pressed={tab === "practice"}
           onClick={() => changeTab("practice")}
         >
           Capturar muestras
         </button>
         <button
-          disabled={training || recording}
+          disabled={training || importing || recording}
           aria-pressed={tab === "recognition"}
           onClick={() => changeTab("recognition")}
         >
           Reconocimiento
         </button>
         <button
-          disabled={training || recording}
+          disabled={training || importing || recording}
           aria-pressed={tab === "dataset"}
           onClick={() => changeTab("dataset")}
         >
@@ -626,7 +681,7 @@ function App() {
                     </p>
                     <div className="actions">
                       <button
-                        disabled={training || recording}
+                        disabled={training || importing || recording}
                         onClick={() => changeTab("practice")}
                       >
                         Capturar mis muestras
@@ -645,7 +700,7 @@ function App() {
                       </button>
                       {modelSource === "personal" && (
                         <button
-                          disabled={training || recording}
+                          disabled={training || importing || recording}
                           onClick={() => void useInitialModel()}
                         >
                           Usar modelo inicial
@@ -693,7 +748,7 @@ function App() {
                     </button>
                   ) : (
                     <button
-                      disabled={training}
+                      disabled={training || importing}
                       onClick={() => void startCamera()}
                     >
                       Activar cámara
@@ -756,6 +811,7 @@ function App() {
               className="primary"
               disabled={
                 training ||
+                importing ||
                 !storageReady ||
                 new Set(samples.map((s) => s.label)).size < 2
               }
@@ -763,6 +819,50 @@ function App() {
             >
               {training ? "Entrenando…" : "Entrenar con mis muestras"}
             </button>
+            <section
+              className="dataset-transfer"
+              aria-label="Compartir muestras del equipo"
+            >
+              <h3>Compartir muestras del equipo</h3>
+              <p className="help">
+                Exporta tus capturas para enviarlas al coordinador, o importa
+                las de tus compañeros. Se conservan participante, sesión e
+                identificadores. Importar no entrena el modelo.
+              </p>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={includePhotos}
+                  onChange={(e) => setIncludePhotos(e.target.checked)}
+                />
+                Incluir las fotos opcionales en el archivo exportado.
+              </label>
+              <button
+                disabled={!samples.length || importing || training}
+                onClick={() => downloadDataset(samples, includePhotos)}
+              >
+                Exportar muestras del equipo
+              </button>
+              <label>
+                Importar archivos de muestras (.json)
+                <input
+                  type="file"
+                  multiple
+                  accept=".json,application/json"
+                  disabled={importing || training || !storageReady}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    e.target.value = "";
+                    if (files.length) void importFiles(files);
+                  }}
+                />
+              </label>
+              {importing && <p role="status">Importando muestras…</p>}
+              <p>
+                {new Set(samples.map((s) => s.participant)).size} participantes
+                · {new Set(samples.map((s) => s.label)).size} letras.
+              </p>
+            </section>
             {viewedSample && samples.find((s) => s.id === viewedSample) && (
               <SampleViewer
                 key={viewedSample}
@@ -794,7 +894,7 @@ function App() {
                             Ver intento
                           </button>{" "}
                           <button
-                            disabled={training}
+                            disabled={training || importing}
                             onClick={() => void removeSample(s.id)}
                           >
                             Eliminar

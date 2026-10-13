@@ -10,7 +10,7 @@ Prototipo web de escritorio para el alfabeto de la Lengua de Señas de Guatemala
 4. Pulsar **Entrenar con mis muestras** en Reconocimiento o Mis muestras. El servidor entrena y guarda el modelo; queda disponible automáticamente, incluso tras recargar.
 5. **Usar modelo inicial** elimina el modelo personal activo y vuelve al inicial, conservando las muestras para poder reentrenar.
 
-No se descargan ni cargan JSON como parte del flujo del usuario. El protocolo interno usa JSON por HTTP. El entrenamiento personal requiere al menos un intento de dos letras distintas; no mide precisión ni valida las etiquetas. El resultado es una candidata entre las letras del modelo, no una evaluación de ejecución ni un rechazo fiable de gestos fuera del catálogo.
+El reconocimiento no requiere descargar ni cargar modelos JSON. Para recolección con el equipo, Mis muestras permite exportar/importar datasets JSON. El protocolo interno usa JSON por HTTP. El entrenamiento personal requiere al menos un intento de dos letras distintas; no mide precisión ni valida las etiquetas. El resultado es una candidata entre las letras del modelo, no una evaluación de ejecución ni un rechazo fiable de gestos fuera del catálogo.
 
 La lámina proporcionada por el equipo se muestra con un recorte por letra; está pendiente de validación para LENSEGUA y no incluye Ñ. El modelo inicial disponible en este entorno sigue siendo el piloto A–F con seis intentos de una sola persona.
 
@@ -90,3 +90,7 @@ Ver [ruta técnica](docs/ROADMAP.md), [protocolo](docs/DATASET.md) y [recursos d
 En **Mis muestras → Ver intento** se pueden reproducir los puntos o recorrer los cuadros con un deslizador. Las muestras anteriores solo tienen posiciones. Las nuevas capturas pueden guardar una foto opcional, tomada alrededor de la mitad del intento, vinculada al mismo cuadro de puntos. Al elegir ese cuadro se muestra la foto con los puntos; los demás cuadros muestran solo las posiciones. La foto se almacena en el servidor y no se usa como entrada del modelo.
 
 Si hay confusión entre letras, revisar etiquetas, orientación y detección, eliminar/repetir las capturas incorrectas y reunir más intentos independientes de ambas letras antes de reentrenar. Un solo intento por clase no permite valorar precisión. El visor no valida automáticamente la corrección de la seña.
+
+## Recolección con compañeros
+
+Cada compañero puede clonar y ejecutar localmente, capturar bajo un código estable y usar **Mis muestras → Exportar muestras del equipo**. El coordinador importa los archivos desde esa misma pantalla y entrena. La importación conserva identidades e IDs, omite duplicados y no reentrena automáticamente. Consultar [instrucciones del equipo](docs/TEAM_COLLECTION.md) para instalación Linux/macOS/Windows, códigos, sesiones y entrega. El repositorio privado requiere acceso de colaboradores.

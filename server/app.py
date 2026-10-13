@@ -43,9 +43,9 @@ class Store:
         with self.connect() as db:
             return [json.loads(row[0]) for row in db.execute('SELECT value FROM samples WHERE profile=? ORDER BY rowid', (profile,))]
 
-    def put_samples(self, profile, samples):
-        if not isinstance(samples, list) or len(samples) > 1000:
-            raise ValueError('Envía como máximo 1000 intentos por solicitud')
+    def put_samples(self, profile, samples, max_samples=1000):
+        if not isinstance(samples, list) or len(samples) > max_samples:
+            raise ValueError(f'Envía como máximo {max_samples} intentos por solicitud')
         # Validar todo antes de abrir la transacción; no importar parcialmente.
         for sample in samples:
             if not isinstance(sample, dict) or sample.get('label') not in LETTERS:
@@ -76,9 +76,19 @@ class Store:
                     raise ValueError('La foto no es válida')
                 if not raw.startswith(b'\xff\xd8') or not raw.endswith(b'\xff\xd9'):
                     raise ValueError('La foto no es JPEG')
+        added = 0
         with self.connect() as db:
             for sample in samples:
-                db.execute('INSERT OR IGNORE INTO samples VALUES (?,?,?)', (profile, sample['id'], json.dumps(sample, allow_nan=False)))
+                cursor = db.execute('INSERT OR IGNORE INTO samples VALUES (?,?,?)', (profile, sample['id'], json.dumps(sample, allow_nan=False)))
+                added += cursor.rowcount
+        return added
+
+    def import_dataset(self, profile, data):
+        if not isinstance(data, dict) or data.get('schemaVersion') != 1 or data.get('language') != 'LENSEGUA':
+            raise ValueError('Archivo incompatible: se requiere un dataset SeñaLab de LENSEGUA, versión 1')
+        samples = data.get('samples')
+        added = self.put_samples(profile, samples, max_samples=10000)
+        return {'added': added, 'duplicates': len(samples) - added}
 
     def delete_sample(self, profile, sample_id):
         with self.connect() as db:
@@ -144,9 +154,9 @@ def handler_for(store, static_directory=ROOT / 'dist'):
             except ValueError:
                 raise PermissionError('Perfil inválido')
 
-        def body(self):
+        def body(self, max_bytes=15_000_000):
             length = int(self.headers.get('Content-Length', '0'))
-            if not 0 < length <= 15_000_000:
+            if not 0 < length <= max_bytes:
                 raise ValueError('Solicitud vacía o demasiado grande')
             if self.headers.get_content_type() != 'application/json':
                 raise ValueError('Se requiere JSON')
@@ -161,6 +171,8 @@ def handler_for(store, static_directory=ROOT / 'dist'):
                     result = store.samples(profile)
                 elif method == 'POST' and self.path == '/api/samples':
                     store.put_samples(profile, self.body()); result = {'ok': True}
+                elif method == 'POST' and self.path == '/api/samples/import':
+                    result = store.import_dataset(profile, self.body(max_bytes=50_000_000))
                 elif method == 'DELETE' and self.path.startswith('/api/samples/'):
                     store.delete_sample(profile, str(uuid.UUID(self.path.removeprefix('/api/samples/')))); result = {'ok': True}
                 elif method == 'GET' and self.path == '/api/model':

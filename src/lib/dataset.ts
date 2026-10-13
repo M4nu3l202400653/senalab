@@ -31,15 +31,23 @@ export function normalize(points: Point[]): number[] {
   if (!Number.isFinite(scale) || scale < 1e-8) throw new Error("Mano inválida");
   return centered.flatMap((p) => p.map((v) => v / scale));
 }
-export function downloadDataset(samples: Sample[]) {
+export function downloadDataset(samples: Sample[], includePhotos = false) {
+  const exported = includePhotos
+    ? samples
+    : samples.map(({ photo: _photo, ...sample }) => sample);
+  const participants = [...new Set(samples.map((s) => s.participant))];
+  const participant =
+    participants.length === 1
+      ? participants[0].replace(/[^a-zA-Z0-9_-]/g, "_")
+      : "grupo";
   const url = URL.createObjectURL(
-    new Blob([JSON.stringify(dataset(samples), null, 2)], {
+    new Blob([JSON.stringify(dataset(exported))], {
       type: "application/json",
     }),
   );
   const link = document.createElement("a");
   link.href = url;
-  link.download = `senalab-${new Date().toISOString().slice(0, 10)}.json`;
+  link.download = `senalab-${participant}-${new Date().toISOString().slice(0, 10)}.json`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
