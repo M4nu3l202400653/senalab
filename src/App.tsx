@@ -317,421 +317,252 @@ function App() {
   const letterCount = samples.filter((s) => s.label === letter).length;
   return (
     <div className="app">
-      <aside className="sidebar">
-        <a
-          className="brand"
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            changeTab("practice");
-          }}
+      <header className="header">
+        <img className="logo" src="/logo-senalab.jpeg" alt="SeñaLab" />
+        <div>
+          <h1>SeñaLab</h1>
+          <p>Prototipo · Alfabeto de LENSEGUA</p>
+        </div>
+      </header>
+      <nav aria-label="Navegación principal">
+        <button
+          aria-pressed={tab === "practice"}
+          onClick={() => changeTab("practice")}
         >
-          <span className="brand-icon">S</span>SeñaLab
-          <span className="brand-dot">.</span>
-        </a>
-        <p className="sidebar-caption">APRENDE. PRACTICA. CONECTA.</p>
-        <nav aria-label="Navegación principal">
-          <button
-            className={tab === "practice" ? "nav active" : "nav"}
-            onClick={() => changeTab("practice")}
-          >
-            <span>◉</span> Laboratorio del alfabeto
-          </button>
-          <button
-            className={tab === "dataset" ? "nav active" : "nav"}
-            onClick={() => changeTab("dataset")}
-          >
-            <span>▦</span> Mis muestras <b>{samples.length}</b>
-          </button>
-          <button
-            className={tab === "roadmap" ? "nav active" : "nav"}
-            onClick={() => changeTab("roadmap")}
-          >
-            <span>↗</span> Ruta del proyecto
-          </button>
-        </nav>
-        <div className="sidebar-footer">
-          <span className="pill">LENSEGUA</span>
-          <p>Lengua de Señas de Guatemala</p>
-          <small>Prototipo 0.1 · Datos en tu dispositivo</small>
-        </div>
-      </aside>
+          Capturar muestras
+        </button>
+        <button
+          aria-pressed={tab === "dataset"}
+          onClick={() => changeTab("dataset")}
+        >
+          Mis muestras ({samples.length})
+        </button>
+        <button
+          aria-pressed={tab === "roadmap"}
+          onClick={() => changeTab("roadmap")}
+        >
+          Fases del proyecto
+        </button>
+      </nav>
       <main>
-        <header className="topbar">
-          <span>Tu espacio para aprender</span>
-          <span className="version">
-            FASE 02 <i /> Laboratorio de captura
-          </span>
-        </header>
-        <div className="content">
-          {error && (
-            <div className="error" role="alert">
-              {error}
-              <button onClick={() => setError("")} aria-label="Cerrar mensaje">
-                ×
-              </button>
-            </div>
-          )}
-          {tab === "practice" && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <p className="eyebrow">
-                    DEL PRIMER GESTO AL PRIMER APRENDIZAJE
-                  </p>
-                  <h1>Todo empieza con una letra.</h1>
-                  <p>
-                    Prepara las muestras que darán vida al reconocimiento de
-                    LENSEGUA.
-                  </p>
-                </div>
-                <span className="pill">Alfabeto · versión inicial</span>
-              </div>
-              <div className="notice">
-                <span>ⓘ</span>
-                <p>
-                  <strong>Estamos preparando el modelo.</strong> Este
-                  laboratorio detecta tu mano y guarda intentos. La evaluación
-                  de letras estará disponible después del entrenamiento y la
-                  validación.
-                </p>
-              </div>
-              <div className="workspace">
-                <section className="reference card">
-                  <div className="section-label">
-                    <span>01 / ELIGE UNA LETRA</span>
-                    <span>{letterCount} intentos</span>
-                  </div>
-                  <div className="letter-display">
-                    <span>{letter}</span>
-                    <small>LENSEGUA · referencia pendiente</small>
-                  </div>
-                  <div className="alphabet" aria-label="Letras del alfabeto">
+        {error && (
+          <div className="error" role="alert">
+            {error}
+            <button onClick={() => setError("")} aria-label="Cerrar mensaje">
+              ×
+            </button>
+          </div>
+        )}
+        {tab === "practice" && (
+          <>
+            <h2>Capturar muestras</h2>
+            <p className="notice">
+              En desarrollo: detecta la mano y guarda muestras. Todavía no
+              reconoce letras.
+            </p>
+            <div className="workspace">
+              <section className="panel">
+                <label className="letter-select">
+                  Letra
+                  <select
+                    aria-label="Letra"
+                    value={letter}
+                    disabled={recording}
+                    onChange={(e) => {
+                      setLetter(e.target.value);
+                      setPreview(null);
+                    }}
+                  >
                     {LETTERS.map((l) => (
-                      <button
-                        disabled={recording}
-                        aria-pressed={letter === l}
-                        className={letter === l ? "selected" : ""}
-                        key={l}
-                        onClick={() => {
-                          setLetter(l);
-                          setPreview(null);
-                        }}
-                      >
+                      <option key={l} value={l}>
                         {l}
-                      </button>
+                      </option>
                     ))}
-                  </div>
-                  <div className="reference-info">
-                    <h3>Una referencia confiable primero</h3>
-                    <p>
-                      Necesitamos confirmar la forma y el movimiento de esta
-                      letra antes de usar sus muestras para entrenar.
-                    </p>
-                    <a
-                      href="https://conadi.gob.gt/web/lensegua/"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Explorar recursos de CONADI ↗
-                    </a>
-                  </div>
-                  <label className="upload">
-                    Ver imagen de referencia local
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) setPreview(URL.createObjectURL(file));
-                      }}
-                    />
-                  </label>
-                  {preview && (
-                    <div className="local-reference">
-                      <img
-                        src={preview}
-                        alt={`Referencia local para la letra ${letter}, sin validar`}
-                      />
-                      <small>Vista temporal · material sin validar</small>
-                    </div>
-                  )}
-                </section>
-                <section className="camera-card card">
-                  <div className="section-label">
-                    <span>02 / CAPTURA UN INTENTO</span>
-                    <span className={active ? "live" : ""}>
-                      ● {active ? "Cámara activa" : "Cámara apagada"}
-                    </span>
-                  </div>
-                  <div className="camera-view">
-                    <video
-                      ref={video}
-                      muted
-                      playsInline
-                      aria-label="Vista de tu cámara"
-                    />
-                    <canvas ref={canvas} aria-hidden="true" />
-                    {!active && (
-                      <div className="camera-placeholder">
-                        <div className="camera-symbol">◎</div>
-                        <h2>Tu mano, el punto de partida.</h2>
-                        <p>
-                          Activa la cámara y coloca una mano en el encuadre.
-                          <br />
-                          Buscaremos sus 21 puntos de referencia.
-                        </p>
-                        <button
-                          className="primary"
-                          onClick={() => void startCamera()}
-                          disabled={loading}
-                        >
-                          {loading ? "Preparando detector…" : "Activar cámara"}
-                        </button>
-                      </div>
-                    )}
-                    {recording && (
-                      <div className="recording">
-                        ● Capturando letra {letter} · {remaining}s
-                      </div>
-                    )}
-                    <div className="camera-tag">PROCESAMIENTO LOCAL</div>
-                  </div>
-                  <div className="camera-status" role="status">
-                    <span
-                      className={detected ? "status-dot ready" : "status-dot"}
-                    />
-                    {status}
-                    {(active || loading) && (
-                      <button
-                        className="text-button"
-                        disabled={recording}
-                        onClick={stopCamera}
-                      >
-                        Apagar cámara
-                      </button>
-                    )}
-                  </div>
-                  <div className="capture-form">
-                    <div className="fields">
-                      <label>
-                        Código de participante
-                        <input
-                          value={participant}
-                          disabled={recording}
-                          onChange={(e) => setParticipant(e.target.value)}
-                          placeholder="Ej. persona-01"
-                          maxLength={60}
-                        />
-                      </label>
-                      <label>
-                        Sesión
-                        <input
-                          value={session}
-                          disabled={recording}
-                          onChange={(e) => setSession(e.target.value)}
-                          placeholder="Ej. sesion-01"
-                          maxLength={60}
-                        />
-                      </label>
-                    </div>
-                    <label className="checkbox">
-                      <input
-                        type="checkbox"
-                        checked={consent}
-                        disabled={recording}
-                        onChange={(e) => setConsent(e.target.checked)}
-                      />
-                      Acepto guardar los puntos de mi mano en este navegador. No
-                      se guardan imágenes ni audio.
-                    </label>
-                    <div className="capture-bottom">
-                      <small>
-                        Un intento = una secuencia de 3 segundos.
-                        <br />
-                        Usa un código, evita escribir tu nombre.
-                      </small>
-                      <button
-                        className="primary"
-                        onClick={capture}
-                        disabled={
-                          !active ||
-                          !detected ||
-                          recording ||
-                          !participant.trim() ||
-                          !session.trim() ||
-                          !consent ||
-                          !storageReady
-                        }
-                      >
-                        {recording
-                          ? "Guardando intento…"
-                          : `Capturar letra ${letter}`}{" "}
-                        <span>→</span>
-                      </button>
-                    </div>
-                  </div>
-                </section>
-              </div>
-              <div className="tips">
-                <div>
-                  <b>01</b>
-                  <span>
-                    <strong>Busca buena luz</strong>
-                    <small>Ilumina la mano y evita el contraluz.</small>
-                  </span>
-                </div>
-                <div>
-                  <b>02</b>
-                  <span>
-                    <strong>Deja espacio</strong>
-                    <small>Mantén los dedos dentro del encuadre.</small>
-                  </span>
-                </div>
-                <div>
-                  <b>03</b>
-                  <span>
-                    <strong>Varía los intentos</strong>
-                    <small>Cambia un poco la distancia entre capturas.</small>
-                  </span>
-                </div>
-              </div>
-            </>
-          )}
-          {tab === "dataset" && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <p className="eyebrow">DATOS PARA EL SIGUIENTE PASO</p>
-                  <h1>Cada intento cuenta.</h1>
-                  <p>
-                    Revisa y exporta las secuencias guardadas en esta
-                    computadora.
-                  </p>
-                </div>
-                <button
-                  className="primary"
-                  disabled={!samples.length}
-                  onClick={() => downloadDataset(samples)}
-                >
-                  Exportar JSON ↓
-                </button>
-              </div>
-              <div className="stats">
-                <div className="card">
-                  <strong>{samples.length}</strong>
-                  <span>Intentos guardados</span>
-                </div>
-                <div className="card">
-                  <strong>{new Set(samples.map((s) => s.label)).size}</strong>
-                  <span>Letras capturadas</span>
-                </div>
-                <div className="card">
-                  <strong>
-                    {new Set(samples.map((s) => s.participant)).size}
-                  </strong>
-                  <span>Participantes</span>
-                </div>
-              </div>
-              <div className="notice">
+                  </select>
+                </label>
                 <p>
-                  Las etiquetas las asigna quien captura. Todos los intentos
-                  están <strong>pendientes de revisión</strong>. Exporta un
-                  respaldo: borrar los datos del navegador elimina las muestras.
+                  {letterCount} intentos guardados para {letter}.
                 </p>
-              </div>
-              <section className="card samples">
-                {samples.length ? (
-                  <div className="table-scroll">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Letra</th>
-                          <th>Participante</th>
-                          <th>Sesión</th>
-                          <th>Cuadros</th>
-                          <th>Estado</th>
-                          <th>Acción</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[...samples].reverse().map((s) => (
-                          <tr key={s.id}>
-                            <td>
-                              <b className="sample-letter">{s.label}</b>
-                            </td>
-                            <td>{s.participant}</td>
-                            <td>{s.session}</td>
-                            <td>{s.frames.length}</td>
-                            <td>
-                              <span className="pill">Sin revisar</span>
-                            </td>
-                            <td>
-                              <button
-                                className="text-button"
-                                onClick={() => void removeSample(s.id)}
-                              >
-                                Eliminar
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="empty">
-                    <h2>Tu colección empieza aquí.</h2>
-                    <p>
-                      Captura tu primer intento en el laboratorio del alfabeto.
-                    </p>
-                    <button
-                      className="primary"
-                      onClick={() => changeTab("practice")}
-                    >
-                      Ir al laboratorio →
-                    </button>
-                  </div>
+                <label className="upload">
+                  Imagen de referencia (opcional)
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setPreview(URL.createObjectURL(file));
+                    }}
+                  />
+                </label>
+                {preview && (
+                  <img
+                    className="reference-image"
+                    src={preview}
+                    alt={`Referencia local para la letra ${letter}, sin validar`}
+                  />
                 )}
-              </section>
-            </>
-          )}
-          {tab === "roadmap" && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <p className="eyebrow">PASO A PASO, CON DATOS REALES</p>
-                  <h1>La ruta de SeñaLab.</h1>
-                  <p>
-                    Primero capturar y validar. Después reconocer y enseñar.
-                  </p>
-                </div>
-              </div>
-              <div className="phases">
-                {phases.map(([n, title, description, state]) => (
-                  <section className="card phase" key={n}>
-                    <b>{n}</b>
-                    <div>
-                      <h2>{title}</h2>
-                      <p>{description}</p>
-                    </div>
-                    <span className="pill">{state}</span>
-                  </section>
-                ))}
-              </div>
-              <div className="notice">
-                <p>
-                  La precisión se medirá con personas distintas a las del
-                  entrenamiento. No fijaremos un porcentaje hasta evaluar datos
-                  reales.
+                <p className="help">
+                  Las referencias de LENSEGUA están pendientes de validación. La
+                  imagen seleccionada solo se muestra durante esta sesión.
                 </p>
+                <a
+                  href="https://conadi.gob.gt/web/lensegua/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Recursos de CONADI
+                </a>
+                <label>
+                  Código de participante
+                  <input
+                    value={participant}
+                    disabled={recording}
+                    onChange={(e) => setParticipant(e.target.value)}
+                    placeholder="persona-01"
+                    maxLength={60}
+                  />
+                </label>
+                <label>
+                  Sesión
+                  <input
+                    value={session}
+                    disabled={recording}
+                    onChange={(e) => setSession(e.target.value)}
+                    maxLength={60}
+                  />
+                </label>
+                <label className="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    disabled={recording}
+                    onChange={(e) => setConsent(e.target.checked)}
+                  />
+                  Acepto guardar los puntos de mi mano en este navegador. No se
+                  guardan imágenes ni audio.
+                </label>
+              </section>
+              <section className="panel">
+                <h3>Cámara</h3>
+                <div className="camera-view">
+                  <video
+                    ref={video}
+                    muted
+                    playsInline
+                    aria-label="Vista de tu cámara"
+                  />
+                  <canvas ref={canvas} aria-hidden="true" />
+                  {!active && (
+                    <span className="camera-placeholder">
+                      {loading ? "Preparando detector…" : "Cámara apagada"}
+                    </span>
+                  )}
+                  {recording && (
+                    <span className="recording">
+                      Capturando {letter} · {remaining}s
+                    </span>
+                  )}
+                </div>
+                <p role="status">{status}</p>
+                <div className="actions">
+                  {active || loading ? (
+                    <button disabled={recording} onClick={stopCamera}>
+                      Apagar cámara
+                    </button>
+                  ) : (
+                    <button onClick={() => void startCamera()}>
+                      Activar cámara
+                    </button>
+                  )}
+                  <button
+                    className="primary"
+                    onClick={capture}
+                    disabled={
+                      !active ||
+                      !detected ||
+                      recording ||
+                      !participant.trim() ||
+                      !session.trim() ||
+                      !consent ||
+                      !storageReady
+                    }
+                  >
+                    {recording
+                      ? "Guardando intento…"
+                      : `Capturar letra ${letter}`}
+                  </button>
+                </div>
+                <p className="help">
+                  Cada intento dura 3 segundos. Mantén una sola mano visible y
+                  usa buena iluminación.
+                </p>
+              </section>
+            </div>
+          </>
+        )}
+        {tab === "dataset" && (
+          <>
+            <h2>Mis muestras</h2>
+            <p>{samples.length} intentos guardados en esta computadora.</p>
+            <p className="notice">
+              Muestras pendientes de revisión. Exporta un respaldo antes de
+              borrar los datos del navegador.
+            </p>
+            <button
+              className="primary"
+              disabled={!samples.length}
+              onClick={() => downloadDataset(samples)}
+            >
+              Exportar JSON
+            </button>
+            {samples.length ? (
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Letra</th>
+                      <th>Participante</th>
+                      <th>Sesión</th>
+                      <th>Cuadros</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...samples].reverse().map((s) => (
+                      <tr key={s.id}>
+                        <td>{s.label}</td>
+                        <td>{s.participant}</td>
+                        <td>{s.session}</td>
+                        <td>{s.frames.length}</td>
+                        <td>
+                          <button onClick={() => void removeSample(s.id)}>
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </>
-          )}
-          <footer>
-            Hecho para acercarnos. <span>SeñaLab · Guatemala</span>
-          </footer>
-        </div>
+            ) : (
+              <p>No hay muestras. Puedes empezar en «Capturar muestras».</p>
+            )}
+          </>
+        )}
+        {tab === "roadmap" && (
+          <>
+            <h2>Fases del proyecto</h2>
+            <ol className="phases">
+              {phases.map(([n, title, description, state]) => (
+                <li key={n}>
+                  <h3>{title}</h3>
+                  <p>{description}</p>
+                  <small>{state}</small>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
       </main>
     </div>
   );

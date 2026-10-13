@@ -23,7 +23,7 @@ Salida: catálogo validado. Las 27 etiquetas actuales son candidatas del alfabet
 - [x] Pruebas de normalización, formato y separación por persona; plantilla de CI.
 - [ ] Probar con cámara física en Chrome/Edge y distintas computadoras.
 
-Salida: herramienta reproducible de recolección. Los puntos se guardan; no se guardan imágenes ni audio. Los archivos de modelo y WASM se sirven localmente. La tipografía usa Google Fonts con alternativa del sistema.
+Salida: herramienta reproducible de recolección. Los puntos se guardan; no se guardan imágenes ni audio. Los archivos de modelo y WASM se sirven localmente. La interfaz usa tipografía del sistema, el logo proporcionado por el equipo y sus colores verdes.
 
 ## Fase 3 — Datos y baseline (siguiente)
 
