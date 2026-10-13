@@ -197,3 +197,7 @@ th {
     height: 85px;
   }
 }
+
+nav button[aria-pressed="true"]:hover:enabled {
+  background: var(--brand-dark);
+}
