@@ -54,7 +54,7 @@ Sesiones sugeridas: `P02-s01`, `P02-s02`, etc. Mantener una sesión distinta por
 1. Acordar las letras y verificar sus referencias de LENSEGUA antes de comenzar. Como piloto acotado se puede usar A–F; no ampliar cada persona por su cuenta. La lámina actual sigue pendiente de validación.
 2. Como meta inicial, reunir **10 intentos por letra en dos sesiones distintas**: 20 por letra/persona. Es una meta de recolección, no una garantía de precisión. Con seis personas y seis letras serían 720 intentos.
 3. En Capturar muestras, elegir la letra, ingresar el código y la sesión, aceptar el almacenamiento y activar la cámara.
-4. Cada intento dura tres segundos. Soltar/recolocar la mano entre intentos para que sean ejecuciones independientes. Mantener una sola mano visible, sin dedos fuera del encuadre.
+4. El botón captura cinco intentos de tres segundos con pausas de tres segundos. Soltar/recolocar la mano durante cada pausa para repetir la seña; no mantener la misma postura toda la serie. Dos series por letra en cada una de las dos sesiones completan la meta inicial de 20 intentos. Mantener una sola mano visible, sin dedos fuera del encuadre.
 5. Variar moderadamente distancia e iluminación entre sesiones, manteniendo la seña correcta. Usar la misma mano dominante durante una sesión y registrar cualquier cambio de protocolo fuera de la app.
 6. Activar Guardar una foto del intento solo si se desea incluir una referencia para revisión. La foto es opcional y no se usa para entrenar.
 7. Revisar en Mis muestras → Ver intento y eliminar/repetir capturas incompletas o mal etiquetadas.

@@ -6,7 +6,7 @@ Prototipo web de escritorio para el alfabeto de la Lengua de Señas de Guatemala
 
 1. Entrar a **Reconocimiento**. El programa carga automáticamente el modelo inicial o el último modelo personal del perfil.
 2. Activar la cámara y pulsar **Probar reconocimiento (3 s)**. No guarda este intento.
-3. Opcionalmente, ir a **Capturar muestras**, seleccionar letras y guardar intentos con la mano del usuario.
+3. Opcionalmente, ir a **Capturar muestras**, seleccionar letras y guardar series guiadas de cinco intentos con la mano del usuario.
 4. Pulsar **Entrenar con mis muestras** en Reconocimiento o Mis muestras. El servidor entrena y guarda el modelo; queda disponible automáticamente, incluso tras recargar.
 5. **Usar modelo inicial** elimina el modelo personal activo y vuelve al inicial, conservando las muestras para poder reentrenar.
 
@@ -94,3 +94,9 @@ Si hay confusión entre letras, revisar etiquetas, orientación y detección, el
 ## Recolección con compañeros
 
 Cada compañero puede clonar y ejecutar localmente, capturar bajo un código estable y usar **Mis muestras → Exportar muestras del equipo**. El coordinador importa los archivos desde esa misma pantalla y entrena. La importación conserva identidades e IDs, omite duplicados y no reentrena automáticamente. Consultar [instrucciones del equipo](docs/TEAM_COLLECTION.md) para instalación Linux/macOS/Windows, códigos, sesiones y entrega. El repositorio privado requiere acceso de colaboradores.
+
+## Series de captura
+
+El botón **Capturar 5 intentos de [letra]** reúne cinco secuencias separadas, de tres segundos cada una, con pausas de tres segundos para soltar y volver a colocar la mano. Una serie completa tarda aproximadamente 27 segundos más el tiempo de guardado. Cada intento obtiene su propio UUID, conserva participante/sesión y puede guardar su foto opcional.
+
+Si una captura resulta incompleta o no se puede guardar, la serie se interrumpe y conserva las anteriores. **Cancelar serie** también conserva lo ya guardado. Los cuadros de una secuencia no se duplican ni se cuentan como intentos separados. El usuario debe repetir la seña en las pausas; mantener la misma postura toda la serie produciría ejemplos muy correlacionados. Esta ayuda no garantiza precisión ni valida la seña.

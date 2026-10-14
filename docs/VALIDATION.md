@@ -35,3 +35,9 @@ Pendiente: capturar intentos con una mano real y cámara física, comprobar los 
 - Prueba de navegador con API y base temporal: importación de dos participantes, reimportación sin duplicados, preservación de UUID/código, exportación de puntos sin fotos por defecto y con fotos al optar por incluirlas, rechazo de otro identificador de lengua y recuperación tras recarga.
 - Cada archivo se valida y guarda de forma atómica; no se reentrena al importar.
 - Instrucciones de instalación y captura para seis personas en docs/TEAM_COLLECTION.md. Los datos reales no se suben al repositorio.
+
+## Series guiadas de cinco intentos
+
+- 11 pruebas web aprobadas y build de producción aprobado. Pruebas nuevas de orden captura/pausa, interrupción por intento inválido y cancelación de temporizadores.
+- Navegador con cámara/detector simulados y API real: una serie produce cinco UUID distintos con etiqueta/participante conservados; cancelar en la pausa conserva un intento; perder detección no guarda un intento incompleto ni inicia otra captura.
+- Pendiente probar la serie con cámara física. Las pausas requieren que el participante suelte y repita la seña; la aplicación no garantiza independencia ni corrección lingüística.

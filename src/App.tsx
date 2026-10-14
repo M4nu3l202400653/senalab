@@ -20,6 +20,11 @@ import { recognize, type RecognitionModel } from "./lib/recognizer";
 import { modelRequest } from "./lib/api";
 import { REFERENCE_CROPS } from "./lib/references";
 import { SampleViewer } from "./SampleViewer";
+import {
+  runCaptureSeries,
+  waitFor,
+  type SeriesProgress,
+} from "./lib/captureSeries";
 import "./App.css";
 
 type Tab = "practice" | "recognition" | "dataset";
@@ -42,6 +47,10 @@ function App() {
   const [active, setActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [detected, setDetected] = useState(false);
+  const [seriesProgress, setSeriesProgress] = useState<SeriesProgress | null>(
+    null,
+  );
+  const seriesController = useRef<AbortController | null>(null);
   const [recording, setRecording] = useState(false);
   const [recognizer, setRecognizer] = useState<RecognitionModel | null>(null);
   const [modelSource, setModelSource] = useState<"initial" | "personal" | null>(
@@ -101,6 +110,7 @@ function App() {
       });
     return () => {
       mounted.current = false;
+      seriesController.current?.abort();
       generation.current++;
       cancelAnimationFrame(animation.current);
       if (timer.current) clearTimeout(timer.current);
@@ -110,6 +120,7 @@ function App() {
   }, []);
 
   function stopCamera() {
+    seriesController.current?.abort();
     generation.current++;
     cancelAnimationFrame(animation.current);
     if (timer.current) clearTimeout(timer.current);
@@ -283,11 +294,11 @@ function App() {
       captured.length < 20 ||
       captured[captured.length - 1].t - captured[0].t < 2000
     ) {
-      setRecording(false);
+      if (!seriesController.current) setRecording(false);
       setError(
         "Captura incompleta: mantén una sola mano visible durante al menos dos segundos y vuelve a intentarlo.",
       );
-      return;
+      return false;
     }
     if (testing.current) {
       try {
@@ -323,38 +334,84 @@ function App() {
         setSamples((s) => [...s, sample]);
         setStatus(`Intento de ${label} guardado · pendiente de revisión`);
       }
+      return true;
     } catch {
       if (mounted.current)
         setError(
           "No se pudo guardar el intento en el servidor. Revisa que la aplicación esté iniciada y vuelve a capturar.",
         );
+      return false;
     } finally {
-      if (mounted.current) setRecording(false);
+      if (mounted.current && !seriesController.current) setRecording(false);
     }
   }
-  function capture() {
+  async function capture() {
     if (
       !active ||
       !detected ||
       recording ||
+      seriesController.current ||
       !storageReady ||
       !consent ||
       !participant.trim() ||
       !session.trim()
     )
       return;
+    const controller = new AbortController();
+    seriesController.current = controller;
+    const label = letter,
+      person = participant.trim(),
+      visit = session.trim();
+    let saved = 0;
     setError("");
+    setMessage("");
+    setPrediction("");
+    setRecording(true);
     testing.current = false;
     photoEnabled.current = savePhoto;
-    capturedPhoto.current = undefined;
-    setPrediction("");
-    frames.current = [];
-    started.current = performance.now();
-    setRemaining(3);
-    setRecording(true);
-    timer.current = setTimeout(() => {
-      void finishCapture(letter, participant.trim(), session.trim());
-    }, 3000);
+    try {
+      await runCaptureSeries({
+        signal: controller.signal,
+        capture: async (attempt) => {
+          setSeriesProgress({ attempt, total: 5, phase: "capture" });
+          capturedPhoto.current = undefined;
+          frames.current = [];
+          started.current = performance.now();
+          setRemaining(3);
+          await waitFor(3000, controller.signal);
+          const valid = await finishCapture(label, person, visit);
+          if (valid) saved++;
+          return Boolean(valid);
+        },
+        rest: async (attempt) => {
+          setSeriesProgress({ attempt, total: 5, phase: "rest" });
+          for (let seconds = 3; seconds > 0; seconds--) {
+            setRemaining(seconds);
+            await waitFor(1000, controller.signal);
+          }
+        },
+      });
+    } catch (error) {
+      if (
+        !(error instanceof DOMException && error.name === "AbortError") &&
+        mounted.current
+      )
+        setError("No se pudo completar la serie de capturas.");
+    } finally {
+      if (seriesController.current === controller) {
+        seriesController.current = null;
+        frames.current = null;
+        capturedPhoto.current = undefined;
+        if (mounted.current) {
+          setRecording(false);
+          setSeriesProgress(null);
+          setRemaining(0);
+          setMessage(
+            `${saved} de 5 intentos de ${label} guardados${saved === 5 ? ". Serie completada." : ". Los intentos ya guardados se conservan."}`,
+          );
+        }
+      }
+    }
   }
   function testRecognition() {
     if (!active || !detected || recording || !recognizer) return;
@@ -735,11 +792,20 @@ function App() {
                     <span className="recording">
                       {testing.current
                         ? "Probando reconocimiento"
-                        : `Capturando ${letter}`}{" "}
+                        : seriesProgress?.phase === "rest"
+                          ? "Suelta y vuelve a colocar la mano"
+                          : `Capturando ${letter} · ${seriesProgress?.attempt ?? 1}/5`}{" "}
                       · {remaining}s
                     </span>
                   )}
                 </div>
+                {seriesProgress && (
+                  <p className="notice" role="status">
+                    {seriesProgress.phase === "rest"
+                      ? `Pausa: suelta y vuelve a colocar la mano. El intento ${seriesProgress.attempt} de 5 empieza en ${remaining}s.`
+                      : `Intento ${seriesProgress.attempt} de 5: mantén la seña durante 3 segundos.`}
+                  </p>
+                )}
                 <p role="status">{status}</p>
                 <div className="actions">
                   {active || loading ? (
@@ -757,7 +823,7 @@ function App() {
                   {tab === "practice" ? (
                     <button
                       className="primary"
-                      onClick={capture}
+                      onClick={() => void capture()}
                       disabled={
                         !active ||
                         !detected ||
@@ -769,8 +835,8 @@ function App() {
                       }
                     >
                       {recording
-                        ? "Guardando intento…"
-                        : `Capturar letra ${letter}`}
+                        ? "Serie en curso…"
+                        : `Capturar 5 intentos de ${letter}`}
                     </button>
                   ) : (
                     <button
@@ -788,9 +854,16 @@ function App() {
                     </button>
                   )}
                 </div>
+                {seriesProgress && (
+                  <button onClick={() => seriesController.current?.abort()}>
+                    Cancelar serie
+                  </button>
+                )}
                 <p className="help">
-                  Cada intento dura 3 segundos. Mantén una sola mano visible y
-                  usa buena iluminación.
+                  {tab === "practice"
+                    ? "Una serie guarda 5 intentos de 3 segundos, con pausas de 3 segundos para repetir la seña. No mantengas la misma postura toda la serie."
+                    : "Cada prueba dura 3 segundos."}{" "}
+                  Mantén una sola mano visible y usa buena iluminación.
                 </p>
               </section>
             </div>
