@@ -48,3 +48,13 @@ Pendiente: capturar intentos con una mano real y cámara física, comprobar los 
 - Pruebas nuevas: clasificación del resultado de práctica, rechazo de votos ambiguos, persistencia/idempotencia del historial, aislamiento de perfiles y rechazo de resultados inconsistentes.
 - Navegador con cámara, detector y modelo simulados y API real: referencia de letra, coincidencia, candidata diferente, respuesta ambigua, bloqueo de evaluación de letra no soportada, avance, progreso recuperado tras recarga, cero muestras añadidas al practicar y sin desbordamiento horizontal a 390 px. Sin excepciones JavaScript.
 - Inspección visual en escritorio. Pendiente prueba con cámara física y evaluación de los umbrales con datos revisados. No se cambió el modelo activo ni se marcaron los datasets del equipo como revisados.
+
+## Preparación para hosting Render + Supabase
+
+- 13 pruebas web, 13 pruebas de servidor (incluida integración real con PostgreSQL 17 en Docker) y 5 de entrenamiento aprobadas.
+- Docker construye React y arranca Flask/Gunicorn con usuario sin privilegios. PostgreSQL conserva muestras, modelo y progreso al recrear Store y reiniciar el contenedor de la web.
+- Navegador contra el contenedor: carga real del modelo de 27 clases y de MediaPipe con cámara simulada; almacenamiento/progreso persistentes y entrenamiento/importación/fotos desactivados en modo público. Sin excepciones JavaScript.
+- El modo público limita cantidad de capturas y tamaño de solicitudes; una reimportación idéntica no consume cupo adicional. El esquema senalab tiene RLS habilitado y solo se consulta desde el servidor.
+- Herramientas administrativas de publicación y descarga probadas con PostgreSQL local; archivo de conexión generado con permisos 0600 y sin imprimir credenciales.
+- Modelo experimental para hosting preparado localmente con los 797 intentos, sin revisión automática ni medición formal de precisión; no sustituye el modelo del perfil local y queda fuera de Git.
+- Pendiente: crear las cuentas/proyecto del usuario, conectar Supabase real, desplegar Render y comprobar la URL HTTPS. Las pruebas locales no verifican por sí solas el despliegue externo.

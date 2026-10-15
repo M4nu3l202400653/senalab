@@ -12,28 +12,42 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
 from training.train import LETTERS, export_browser_model, normalize, prepare
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class Store:
-    def __init__(self, path, default_model):
+    def __init__(self, path, default_model, database_url=None):
         self.path = Path(path)
         self.default_model = Path(default_model)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.database_url = database_url
+        self.order_column = 'seq' if database_url else 'rowid'
+        if not database_url:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
         self.training_lock = threading.Lock()
         with self.connect() as db:
-            db.execute('CREATE TABLE IF NOT EXISTS samples (profile TEXT, id TEXT, value TEXT, PRIMARY KEY(profile,id))')
+            seq = 'seq BIGSERIAL, ' if database_url else ''
+            db.execute(f'CREATE TABLE IF NOT EXISTS samples ({seq}profile TEXT, id TEXT, value TEXT, PRIMARY KEY(profile,id))')
             db.execute('CREATE TABLE IF NOT EXISTS models (profile TEXT PRIMARY KEY, value TEXT)')
-            db.execute('CREATE TABLE IF NOT EXISTS practice (profile TEXT, id TEXT, value TEXT, PRIMARY KEY(profile,id))')
+            db.execute(f'CREATE TABLE IF NOT EXISTS practice ({seq}profile TEXT, id TEXT, value TEXT, PRIMARY KEY(profile,id))')
+            if database_url:
+                for table in ('samples', 'models', 'practice'):
+                    db.execute(f'ALTER TABLE {table} ENABLE ROW LEVEL SECURITY')
             if self.default_model.is_file():
                 initial = json.loads(self.default_model.read_text())
-                db.execute('INSERT OR IGNORE INTO models VALUES (?,?)', ('initial', json.dumps(initial)))
+                db.execute('INSERT INTO models (profile,value) VALUES (?,?) ON CONFLICT(profile) DO NOTHING', ('initial', json.dumps(initial)))
 
     @contextmanager
     def connect(self):
+        if self.database_url:
+            import psycopg
+            from server.postgres import PostgresConnection
+            with psycopg.connect(self.database_url, connect_timeout=10, prepare_threshold=None) as connection:
+                connection.execute('CREATE SCHEMA IF NOT EXISTS senalab')
+                connection.execute('SET search_path TO senalab')
+                yield PostgresConnection(connection)
+            return
         db = sqlite3.connect(self.path, timeout=30)
         try:
             with db:
@@ -43,7 +57,7 @@ class Store:
 
     def samples(self, profile):
         with self.connect() as db:
-            return [json.loads(row[0]) for row in db.execute('SELECT value FROM samples WHERE profile=? ORDER BY rowid', (profile,))]
+            return [json.loads(row[0]) for row in db.execute(f'SELECT value FROM samples WHERE profile=? ORDER BY {self.order_column}', (profile,))]
 
     def put_samples(self, profile, samples, max_samples=1000):
         if not isinstance(samples, list) or len(samples) > max_samples:
@@ -81,7 +95,7 @@ class Store:
         added = 0
         with self.connect() as db:
             for sample in samples:
-                cursor = db.execute('INSERT OR IGNORE INTO samples VALUES (?,?,?)', (profile, sample['id'], json.dumps(sample, allow_nan=False)))
+                cursor = db.execute('INSERT INTO samples (profile,id,value) VALUES (?,?,?) ON CONFLICT(profile,id) DO NOTHING', (profile, sample['id'], json.dumps(sample, allow_nan=False)))
                 added += cursor.rowcount
         return added
 
@@ -108,6 +122,7 @@ class Store:
         return {'source': None, 'model': None}
 
     def train(self, profile):
+        from sklearn.ensemble import RandomForestClassifier
         # Una tarea a la vez en este prototipo; no consumir recursos sin límite.
         if not self.training_lock.acquire(blocking=False):
             raise RuntimeError('Hay un entrenamiento en curso. Vuelve a intentarlo en unos segundos.')
@@ -121,14 +136,14 @@ class Store:
             estimator.fit(features, targets)
             model = export_browser_model(estimator, personal=True)
             with self.connect() as db:
-                db.execute('INSERT OR REPLACE INTO models VALUES (?,?)', (profile, json.dumps(model)))
+                db.execute('INSERT INTO models (profile,value) VALUES (?,?) ON CONFLICT(profile) DO UPDATE SET value=excluded.value', (profile, json.dumps(model)))
             return {'source': 'personal', 'model': model, 'attempts': len(samples)}
         finally:
             self.training_lock.release()
 
     def practice_history(self, profile):
         with self.connect() as db:
-            return [json.loads(row[0]) for row in db.execute('SELECT value FROM practice WHERE profile=? ORDER BY rowid', (profile,))]
+            return [json.loads(row[0]) for row in db.execute(f'SELECT value FROM practice WHERE profile=? ORDER BY {self.order_column}', (profile,))]
 
     def save_practice(self, profile, value):
         if not isinstance(value, dict):
@@ -143,7 +158,7 @@ class Store:
         record = {'id': identifier, 'target': target, 'candidate': candidate, 'outcome': outcome,
                   'modelSource': value['modelSource'], 'createdAt': datetime.now(timezone.utc).isoformat()}
         with self.connect() as db:
-            db.execute('INSERT OR IGNORE INTO practice VALUES (?,?,?)', (profile, identifier, json.dumps(record)))
+            db.execute('INSERT INTO practice (profile,id,value) VALUES (?,?,?) ON CONFLICT(profile,id) DO NOTHING', (profile, identifier, json.dumps(record)))
             stored = db.execute('SELECT value FROM practice WHERE profile=? AND id=?', (profile, identifier)).fetchone()
         return json.loads(stored[0])
 
@@ -187,6 +202,8 @@ def handler_for(store, static_directory=ROOT / 'dist'):
 
         def dispatch(self, method):
             try:
+                if method == 'GET' and self.path == '/api/config':
+                    self.json_response(200, {'trainingEnabled': True, 'photoCaptureEnabled': True, 'teamImportEnabled': True}); return
                 if method == 'GET' and self.path == '/api/health':
                     self.json_response(200, {'ok': True}); return
                 profile = self.profile()

@@ -15,7 +15,7 @@ git clone https://github.com/M4nu3l202400653/senalab.git
 cd senalab
 npm ci
 python3.11 -m venv .venv
-.venv/bin/python -m pip install -r training/requirements.txt
+.venv/bin/python -m pip install -r requirements.txt
 npm run dev
 ```
 
@@ -28,7 +28,7 @@ git clone https://github.com/M4nu3l202400653/senalab.git
 cd senalab
 npm ci
 py -3.11 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r training/requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 npm run dev
 ```
 

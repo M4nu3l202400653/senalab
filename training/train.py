@@ -3,10 +3,6 @@ import argparse
 import json
 from pathlib import Path
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.model_selection import GroupShuffleSplit
-import joblib
 
 LETTERS = set('ABCDEFGHIJKLMNÑOPQRSTUVWXYZ')
 
@@ -45,6 +41,7 @@ def prepare(data, labels, allow_unreviewed=False):
 
 
 def split_by_person(targets, groups, labels):
+    from sklearn.model_selection import GroupShuffleSplit
     if len(set(groups)) < 4:
         raise ValueError('Se requieren al menos 4 participantes para este baseline')
     expected = set(labels)
@@ -74,6 +71,9 @@ def export_browser_model(model, personal):
 
 
 def main():
+    import joblib
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.metrics import classification_report, confusion_matrix
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('dataset', type=Path)
     parser.add_argument('--labels', required=True, help='Letras estáticas validadas, separadas por coma: A,B,C')

@@ -21,7 +21,7 @@ import {
   recognizeForPractice,
   type RecognitionModel,
 } from "./lib/recognizer";
-import { modelRequest } from "./lib/api";
+import { modelRequest, request } from "./lib/api";
 import { REFERENCE_CROPS } from "./lib/references";
 import { SampleViewer } from "./SampleViewer";
 import {
@@ -75,6 +75,11 @@ function App() {
     null,
   );
   const [modelReady, setModelReady] = useState(false);
+  const [capabilities, setCapabilities] = useState({
+    trainingEnabled: true,
+    photoCaptureEnabled: true,
+    teamImportEnabled: true,
+  });
   const [training, setTraining] = useState(false);
   const [importing, setImporting] = useState(false);
   const [includePhotos, setIncludePhotos] = useState(false);
@@ -105,7 +110,7 @@ function App() {
       .catch(() => {
         if (mounted.current)
           setError(
-            "No se pudo conectar al almacenamiento del servidor. Inicia la aplicación con npm run dev y recarga.",
+            "No se pudo conectar al almacenamiento del servidor. Espera unos momentos y recarga.",
           );
       });
     modelRequest()
@@ -126,6 +131,19 @@ function App() {
           );
         }
       });
+    request<typeof capabilities>("/config")
+      .then((config) => {
+        if (mounted.current) {
+          setCapabilities(config);
+          if (!config.photoCaptureEnabled) setSavePhoto(false);
+        }
+      })
+      .catch(() => {
+        if (mounted.current)
+          setError(
+            "No se pudo cargar la configuración del servidor. Recarga la página.",
+          );
+      });
     loadPracticeHistory()
       .then((items) => {
         if (mounted.current) setHistory(items);
@@ -133,7 +151,7 @@ function App() {
       .catch(() => {
         if (mounted.current)
           setError(
-            "No se pudo cargar el progreso. Reinicia la aplicación con npm run dev y recarga.",
+            "No se pudo cargar el progreso. Espera unos momentos y recarga.",
           );
       });
     return () => {
@@ -482,7 +500,8 @@ function App() {
     }, 3000);
   }
   async function trainPersonalModel() {
-    if (training || importing || recording) return;
+    if (!capabilities.trainingEnabled || training || importing || recording)
+      return;
     stopCamera();
     setTraining(true);
     setError("");
@@ -748,10 +767,12 @@ function App() {
                     <input
                       type="checkbox"
                       checked={savePhoto}
-                      disabled={recording}
+                      disabled={recording || !capabilities.photoCaptureEnabled}
                       onChange={(e) => setSavePhoto(e.target.checked)}
                     />
-                    Guardar una foto del intento para revisarlo (opcional).
+                    {capabilities.photoCaptureEnabled
+                      ? "Guardar una foto del intento para revisarlo (opcional)."
+                      : "Esta versión pública guarda solo puntos, sin fotografías."}
                   </label>
                   <label className="checkbox">
                     <input
@@ -760,9 +781,15 @@ function App() {
                       disabled={recording}
                       onChange={(e) => setConsent(e.target.checked)}
                     />
-                    Acepto guardar los puntos de mi mano
-                    {savePhoto ? " y una foto del intento" : ""} en el servidor
-                    de la aplicación. No se guarda audio.
+                    {capabilities.trainingEnabled ? (
+                      <>
+                        Acepto guardar los puntos de mi mano
+                        {savePhoto ? " y una foto del intento" : ""} en el
+                        servidor de la aplicación. No se guarda audio.
+                      </>
+                    ) : (
+                      "Acepto aportar los puntos de mi mano para mejorar el modelo de SeñaLab. No se guardan fotos ni audio."
+                    )}
                   </label>
                 </section>
               ) : (
@@ -772,8 +799,9 @@ function App() {
                     {!modelReady && <p>Cargando modelo…</p>}
                     {modelReady && !recognizer && (
                       <p>
-                        No hay un modelo disponible. Captura muestras de al
-                        menos dos letras y entrena tu modelo personal.
+                        {capabilities.trainingEnabled
+                          ? "No hay un modelo disponible. Captura muestras de al menos dos letras y entrena tu modelo personal."
+                          : "El equipo todavía no ha publicado un modelo. Puedes consultar las referencias y aportar muestras mientras tanto."}
                       </p>
                     )}
                     {recognizer && (
@@ -789,7 +817,7 @@ function App() {
                         </p>
                         <p className="help">
                           {modelSource === "initial"
-                            ? "Piloto A–F entrenado con una sola persona; aún no validado con otros usuarios."
+                            ? "Modelo inicial experimental; su precisión todavía requiere evaluación formal."
                             : "Modelo personal experimental, sin medición de precisión."}{" "}
                           El resultado elige entre las letras del modelo; no
                           valida si la seña está bien realizada ni descarta
@@ -798,8 +826,9 @@ function App() {
                       </>
                     )}
                     <p>
-                      Personalizar es opcional. Captura muestras de tu mano y
-                      entrena cuando quieras.
+                      {capabilities.trainingEnabled
+                        ? "Personalizar es opcional. Captura muestras de tu mano y entrena cuando quieras."
+                        : "Esta web utiliza el modelo publicado. Puedes contribuir con muestras para las próximas versiones."}
                     </p>
                     <div className="actions">
                       <button
@@ -811,6 +840,7 @@ function App() {
                       <button
                         className="primary"
                         disabled={
+                          !capabilities.trainingEnabled ||
                           training ||
                           recording ||
                           !storageReady ||
@@ -818,7 +848,11 @@ function App() {
                         }
                         onClick={() => void trainPersonalModel()}
                       >
-                        {training ? "Entrenando…" : "Entrenar con mis muestras"}
+                        {!capabilities.trainingEnabled
+                          ? "Entrenamiento en la versión local"
+                          : training
+                            ? "Entrenando…"
+                            : "Entrenar con mis muestras"}
                       </button>
                       {modelSource === "personal" && (
                         <button
@@ -948,12 +982,15 @@ function App() {
               aplicación.
             </p>
             <p className="notice">
-              Estas muestras se guardan en el programa y se usan para tu modelo
-              personal. Las etiquetas están pendientes de revisión.
+              {capabilities.trainingEnabled
+                ? "Estas muestras se guardan en el programa y se usan para tu modelo personal."
+                : "Estas muestras se guardan como contribuciones para mejorar el modelo de SeñaLab."}{" "}
+              Las etiquetas están pendientes de revisión.
             </p>
             <button
               className="primary"
               disabled={
+                !capabilities.trainingEnabled ||
                 training ||
                 importing ||
                 !storageReady ||
@@ -961,7 +998,11 @@ function App() {
               }
               onClick={() => void trainPersonalModel()}
             >
-              {training ? "Entrenando…" : "Entrenar con mis muestras"}
+              {!capabilities.trainingEnabled
+                ? "Entrenamiento en la versión local"
+                : training
+                  ? "Entrenando…"
+                  : "Entrenar con mis muestras"}
             </button>
             <section
               className="dataset-transfer"
@@ -993,7 +1034,12 @@ function App() {
                   type="file"
                   multiple
                   accept=".json,application/json"
-                  disabled={importing || training || !storageReady}
+                  disabled={
+                    !capabilities.teamImportEnabled ||
+                    importing ||
+                    training ||
+                    !storageReady
+                  }
                   onChange={(e) => {
                     const files = Array.from(e.target.files ?? []);
                     e.target.value = "";
@@ -1001,6 +1047,13 @@ function App() {
                   }}
                 />
               </label>
+              {!capabilities.teamImportEnabled && (
+                <p className="help">
+                  La importación y el entrenamiento del equipo se realizan en la
+                  versión local. Las capturas nuevas se guardan aquí como
+                  contribuciones.
+                </p>
+              )}
               {importing && <p role="status">Importando muestras…</p>}
               <p>
                 {new Set(samples.map((s) => s.participant)).size} participantes

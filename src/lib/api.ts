@@ -24,7 +24,7 @@ export async function request<T>(
     });
   } catch {
     throw new Error(
-      "No se pudo conectar al servidor. Inicia la aplicación con npm run dev.",
+      "No se pudo conectar al servidor. Espera unos momentos y vuelve a intentarlo.",
     );
   }
   let value;
@@ -32,7 +32,7 @@ export async function request<T>(
     value = await response.json();
   } catch {
     throw new Error(
-      "El servidor no está disponible. Inicia la aplicación con npm run dev.",
+      "El servidor no está disponible. Espera unos momentos y recarga.",
     );
   }
   if (!response.ok)

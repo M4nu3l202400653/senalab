@@ -77,3 +77,13 @@ Se habilita un modo experimental para una sola persona, incluso con un intento p
 - [x] Desactivar evaluación de letras no soportadas por el modelo.
 - [ ] Validar las referencias y calibrar la respuesta con datos revisados de personas no usadas al entrenar.
 - [ ] Evaluación pedagógica con usuarios e instructores competentes en LENSEGUA.
+
+## Hosting preparado
+
+- [x] Servidor Flask/Gunicorn con build React en Docker.
+- [x] PostgreSQL/Supabase compatible conservando SQLite para trabajo local.
+- [x] Versión pública con reconocimiento, progreso y aportes de puntos; entrenamiento local.
+- [x] Herramientas para publicar modelo y descargar contribuciones con conexión privada.
+- [x] Guía docs/HOSTING.md y render.yaml con plan Free.
+- [ ] Cuentas, proyecto Supabase y despliegue real en Render del usuario.
+- [ ] Cuentas de usuarios, recuperación de perfil y almacenamiento de fotos en Storage, si se incorporan a la versión pública.

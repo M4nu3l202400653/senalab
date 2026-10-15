@@ -21,7 +21,7 @@ Requiere Node.js 22.12+ o 24, npm y Python 3.11/3.12 con las dependencias de ent
 ```bash
 npm ci
 python3.11 -m venv .venv
-.venv/bin/pip install -r training/requirements.txt
+.venv/bin/pip install -r requirements.txt
 npm run dev
 ```
 
@@ -37,7 +37,7 @@ Al abrir por primera vez esta versión, las muestras de IndexedDB se copian al s
 
 En el primer inicio, si existe `training/artifacts/personal-af/model.json`, el servidor lo importa como modelo inicial a SQLite. Después lo obtiene de SQLite sin depender del archivo. En un clon nuevo sin datos privados no hay modelo inicial; se puede entrenar uno desde la interfaz o configurar `SENALAB_DEFAULT_MODEL` con un modelo exportado. Se puede configurar `SENALAB_DB` para otra base. Los modelos personales nunca se convierten automáticamente en el modelo inicial compartido.
 
-Este servidor se ejecuta en la computadora actual. Desplegarlo en la nube para múltiples usuarios requiere almacenamiento persistente e identidad de usuarios; aún no se ha desplegado. Guardar datos en el servidor local no implica subirlos a GitHub.
+El servidor local usa SQLite. El despliegue preparado para Render usa PostgreSQL de Supabase y perfiles anónimos, con entrenamiento local. Consultar [guía de hosting](docs/HOSTING.md). Las cuentas de usuario y la recuperación entre dispositivos siguen pendientes. Guardar datos en el servidor no implica subirlos a GitHub.
 
 ## Comprobaciones
 
@@ -110,3 +110,7 @@ SQLite guarda historial por perfil: letra esperada, candidata (o null), resultad
 La práctica guiada admite una candidata cuando el voto medio del bosque alcanza 0.65 y supera al segundo por al menos 0.15. Son umbrales provisionales, sin calibración ni medición de precisión. Si no se cumplen, pide repetir el intento. Esto no garantiza rechazar gestos fuera de catálogo. El reconocimiento libre mantiene su candidata más votada para diagnóstico. La validación de referencias y la evaluación con participantes nuevos siguen pendientes.
 
 Después de actualizar esta versión, reiniciar con `npm run dev` para que el servidor cree la tabla de historial y habilite `/api/practice`. El progreso se conserva bajo el mismo perfil anónimo y tiene las mismas limitaciones de acceso entre navegadores que las muestras.
+
+## Hosting gratuito preparado
+
+Ver [Render + Supabase paso a paso](docs/HOSTING.md). El contenedor sirve React y la API Flask/Gunicorn. Se conserva el flujo de práctica y se recolectan puntos con consentimiento, sin fotos públicas. `DATABASE_URL` configura PostgreSQL; el entrenamiento queda deshabilitado en el servidor público. `server.publish_model` publica el modelo entrenado localmente y `server.download_contributions` descarga las nuevas muestras para revisarlas. Los secretos, datos y modelos entrenados no se incluyen en Git ni en la imagen.

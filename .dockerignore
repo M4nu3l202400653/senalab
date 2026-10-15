@@ -1,0 +1,12 @@
+.git
+.venv
+node_modules
+dist
+data
+training/artifacts
+__pycache__
+**/__pycache__
+.env
+.env.*
+.codex
+*.joblib
