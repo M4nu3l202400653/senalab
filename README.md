@@ -4,8 +4,8 @@ Prototipo web de escritorio para el alfabeto de la Lengua de Señas de Guatemala
 
 ## Flujo actual
 
-1. Entrar a **Reconocimiento**. El programa carga automáticamente el modelo inicial o el último modelo personal del perfil.
-2. Activar la cámara y pulsar **Probar reconocimiento (3 s)**. No guarda este intento.
+1. Entrar a **Aprender**, elegir una letra, observar su referencia y activar la cámara. El programa carga automáticamente el modelo inicial o el último modelo personal del perfil.
+2. Pulsar **Practicar letra [letra]** para un intento de tres segundos. Se muestra una coincidencia, una letra diferente o una respuesta sin coincidencia clara. El historial de práctica se conserva en el servidor, sin guardar imágenes ni puntos del intento. La pestaña **Reconocimiento** conserva la prueba libre.
 3. Opcionalmente, ir a **Capturar muestras**, seleccionar letras y guardar series guiadas de cinco intentos con la mano del usuario.
 4. Pulsar **Entrenar con mis muestras** en Reconocimiento o Mis muestras. El servidor entrena y guarda el modelo; queda disponible automáticamente, incluso tras recargar.
 5. **Usar modelo inicial** elimina el modelo personal activo y vuelve al inicial, conservando las muestras para poder reentrenar.
@@ -100,3 +100,13 @@ Cada compañero puede clonar y ejecutar localmente, capturar bajo un código est
 El botón **Capturar 5 intentos de [letra]** reúne cinco secuencias separadas, de tres segundos cada una, con pausas de tres segundos para soltar y volver a colocar la mano. Una serie completa tarda aproximadamente 27 segundos más el tiempo de guardado. Cada intento obtiene su propio UUID, conserva participante/sesión y puede guardar su foto opcional.
 
 Si una captura resulta incompleta o no se puede guardar, la serie se interrumpe y conserva las anteriores. **Cancelar serie** también conserva lo ya guardado. Los cuadros de una secuencia no se duplican ni se cuentan como intentos separados. El usuario debe repetir la seña en las pausas; mantener la misma postura toda la serie produciría ejemplos muy correlacionados. Esta ayuda no garantiza precisión ni valida la seña.
+
+## Práctica guiada y progreso
+
+La nueva pantalla inicial **Aprender** usa las referencias existentes y el modelo activo. Permite recorrer las letras, practicar las soportadas y pasar a la siguiente. Las letras que el modelo no reconoce quedan disponibles como referencia, con la evaluación desactivada. Ñ no forma parte de las lecciones porque la lámina no incluye su referencia.
+
+SQLite guarda historial por perfil: letra esperada, candidata (o null), resultado, origen del modelo y fecha. La práctica no incorpora muestras automáticamente ni entrena; estas acciones siguen separadas. El progreso cuenta coincidencias del modelo, no certifica la corrección de una seña y puede incluir intentos realizados antes de cambiar/reentrenar el modelo.
+
+La práctica guiada admite una candidata cuando el voto medio del bosque alcanza 0.65 y supera al segundo por al menos 0.15. Son umbrales provisionales, sin calibración ni medición de precisión. Si no se cumplen, pide repetir el intento. Esto no garantiza rechazar gestos fuera de catálogo. El reconocimiento libre mantiene su candidata más votada para diagnóstico. La validación de referencias y la evaluación con participantes nuevos siguen pendientes.
+
+Después de actualizar esta versión, reiniciar con `npm run dev` para que el servidor cree la tabla de historial y habilite `/api/practice`. El progreso se conserva bajo el mismo perfil anónimo y tiene las mismas limitaciones de acceso entre navegadores que las muestras.

@@ -1,6 +1,7 @@
 """Servidor local del prototipo: muestras y modelos por perfil anónimo."""
 import argparse
 import base64
+from datetime import datetime, timezone
 from contextlib import contextmanager
 import json
 import os
@@ -26,6 +27,7 @@ class Store:
         with self.connect() as db:
             db.execute('CREATE TABLE IF NOT EXISTS samples (profile TEXT, id TEXT, value TEXT, PRIMARY KEY(profile,id))')
             db.execute('CREATE TABLE IF NOT EXISTS models (profile TEXT PRIMARY KEY, value TEXT)')
+            db.execute('CREATE TABLE IF NOT EXISTS practice (profile TEXT, id TEXT, value TEXT, PRIMARY KEY(profile,id))')
             if self.default_model.is_file():
                 initial = json.loads(self.default_model.read_text())
                 db.execute('INSERT OR IGNORE INTO models VALUES (?,?)', ('initial', json.dumps(initial)))
@@ -124,6 +126,27 @@ class Store:
         finally:
             self.training_lock.release()
 
+    def practice_history(self, profile):
+        with self.connect() as db:
+            return [json.loads(row[0]) for row in db.execute('SELECT value FROM practice WHERE profile=? ORDER BY rowid', (profile,))]
+
+    def save_practice(self, profile, value):
+        if not isinstance(value, dict):
+            raise ValueError('Intento de práctica inválido')
+        identifier = str(uuid.UUID(value['id']))
+        target, candidate = value.get('target'), value.get('candidate')
+        if not isinstance(target, str) or target not in LETTERS or (candidate is not None and (not isinstance(candidate, str) or candidate not in LETTERS)):
+            raise ValueError('Letra de práctica inválida')
+        outcome = 'uncertain' if candidate is None else 'match' if candidate == target else 'different'
+        if value.get('outcome') != outcome or value.get('modelSource') not in ('initial', 'personal'):
+            raise ValueError('Resultado de práctica inconsistente')
+        record = {'id': identifier, 'target': target, 'candidate': candidate, 'outcome': outcome,
+                  'modelSource': value['modelSource'], 'createdAt': datetime.now(timezone.utc).isoformat()}
+        with self.connect() as db:
+            db.execute('INSERT OR IGNORE INTO practice VALUES (?,?,?)', (profile, identifier, json.dumps(record)))
+            stored = db.execute('SELECT value FROM practice WHERE profile=? AND id=?', (profile, identifier)).fetchone()
+        return json.loads(stored[0])
+
     def reset_model(self, profile):
         with self.connect() as db:
             db.execute('DELETE FROM models WHERE profile=?', (profile,))
@@ -175,6 +198,10 @@ def handler_for(store, static_directory=ROOT / 'dist'):
                     result = store.import_dataset(profile, self.body(max_bytes=50_000_000))
                 elif method == 'DELETE' and self.path.startswith('/api/samples/'):
                     store.delete_sample(profile, str(uuid.UUID(self.path.removeprefix('/api/samples/')))); result = {'ok': True}
+                elif method == 'GET' and self.path == '/api/practice':
+                    result = store.practice_history(profile)
+                elif method == 'POST' and self.path == '/api/practice':
+                    result = store.save_practice(profile, self.body())
                 elif method == 'GET' and self.path == '/api/model':
                     result = store.model(profile)
                 elif method == 'POST' and self.path == '/api/train':

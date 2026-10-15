@@ -228,3 +228,19 @@ nav button[aria-pressed="true"]:hover:enabled {
   padding-top: 16px;
   border-top: 1px solid #d9e2dd;
 }
+
+.learning-panel ol {
+  padding-left: 20px;
+  font-size: 14px;
+}
+.learning-panel li {
+  margin: 8px 0;
+}
+.progress-title {
+  margin-top: 24px;
+}
+.learning-result.different,
+.learning-result.uncertain {
+  background: #fff8e9;
+  border-color: #98743b;
+}

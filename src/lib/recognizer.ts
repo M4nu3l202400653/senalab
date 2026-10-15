@@ -108,3 +108,17 @@ export function recognize(model: RecognitionModel, frames: Frame[]): string {
   const scores = predictFeatures(model, attemptFeatures(frames));
   return model.labels[scores.indexOf(Math.max(...scores))];
 }
+
+// Umbrales provisionales para la práctica guiada; no son precisión calibrada.
+export function recognizeForPractice(
+  model: RecognitionModel,
+  frames: Frame[],
+): string | null {
+  const scores = predictFeatures(model, attemptFeatures(frames));
+  const ranked = scores
+    .map((score, index) => ({ score, label: model.labels[index] }))
+    .sort((a, b) => b.score - a.score);
+  return ranked[0].score >= 0.65 && ranked[0].score - ranked[1].score >= 0.15
+    ? ranked[0].label
+    : null;
+}

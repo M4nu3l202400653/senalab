@@ -16,7 +16,11 @@ import {
   saveSample,
   importDataset,
 } from "./lib/storage";
-import { recognize, type RecognitionModel } from "./lib/recognizer";
+import {
+  recognize,
+  recognizeForPractice,
+  type RecognitionModel,
+} from "./lib/recognizer";
 import { modelRequest } from "./lib/api";
 import { REFERENCE_CROPS } from "./lib/references";
 import { SampleViewer } from "./SampleViewer";
@@ -25,11 +29,25 @@ import {
   waitFor,
   type SeriesProgress,
 } from "./lib/captureSeries";
+import { LearningPanel } from "./LearningPanel";
+import { LetterReference } from "./LetterReference";
+import {
+  loadPracticeHistory,
+  savePracticeAttempt,
+  practiceOutcome,
+  type PracticeAttempt,
+} from "./lib/learning";
 import "./App.css";
 
-type Tab = "practice" | "recognition" | "dataset";
+type Tab = "learn" | "practice" | "recognition" | "dataset";
 function App() {
-  const [tab, setTab] = useState<Tab>("recognition");
+  const [tab, setTab] = useState<Tab>("learn");
+  const [lessonLetter, setLessonLetter] = useState("A");
+  const [history, setHistory] = useState<PracticeAttempt[]>([]);
+  const [lessonResult, setLessonResult] = useState<PracticeAttempt | null>(
+    null,
+  );
+  const lessonTarget = useRef<string | null>(null);
   const [letter, setLetter] = useState("A");
   const [participant, setParticipant] = useState("");
   const [session, setSession] = useState(() =>
@@ -107,6 +125,16 @@ function App() {
               : "No se pudo cargar el modelo del servidor.",
           );
         }
+      });
+    loadPracticeHistory()
+      .then((items) => {
+        if (mounted.current) setHistory(items);
+      })
+      .catch(() => {
+        if (mounted.current)
+          setError(
+            "No se pudo cargar el progreso. Reinicia la aplicación con npm run dev y recarga.",
+          );
       });
     return () => {
       mounted.current = false;
@@ -306,7 +334,27 @@ function App() {
           throw new Error(
             "No hay un modelo disponible. Entrena con tus muestras primero.",
           );
-        setPrediction(recognize(recognizer, captured));
+        if (lessonTarget.current) {
+          const target = lessonTarget.current;
+          const candidate = recognizeForPractice(recognizer, captured);
+          const attempt: PracticeAttempt = {
+            id: crypto.randomUUID(),
+            target,
+            candidate,
+            outcome: practiceOutcome(target, candidate),
+            modelSource: modelSource ?? "initial",
+          };
+          setLessonResult(attempt);
+          try {
+            const saved = await savePracticeAttempt(attempt);
+            if (mounted.current) setHistory((items) => [...items, saved]);
+          } catch {
+            if (mounted.current)
+              setError(
+                "El resultado está disponible, pero no se pudo guardar el progreso en el servidor.",
+              );
+          }
+        } else setPrediction(recognize(recognizer, captured));
       } catch (error) {
         setError(
           error instanceof Error
@@ -417,6 +465,13 @@ function App() {
     if (!active || !detected || recording || !recognizer) return;
     setError("");
     setPrediction("");
+    setLessonResult(null);
+    lessonTarget.current = tab === "learn" ? lessonLetter : null;
+    if (
+      lessonTarget.current &&
+      !recognizer.labels.includes(lessonTarget.current)
+    )
+      return;
     testing.current = true;
     frames.current = [];
     started.current = performance.now();
@@ -525,6 +580,7 @@ function App() {
     stopCamera();
     setViewedSample(null);
     setTab(next);
+    setLessonResult(null);
     setError("");
     setMessage("");
   }
@@ -537,7 +593,6 @@ function App() {
       setError("No se pudo eliminar la muestra.");
     }
   }
-  const crop = REFERENCE_CROPS[letter]?.split(" ").map(Number);
   const letterCount = samples.filter((s) => s.label === letter).length;
   return (
     <div className="app">
@@ -549,6 +604,13 @@ function App() {
         </div>
       </header>
       <nav aria-label="Navegación principal">
+        <button
+          disabled={training || importing || recording}
+          aria-pressed={tab === "learn"}
+          onClick={() => changeTab("learn")}
+        >
+          Aprender
+        </button>
         <button
           disabled={training || importing || recording}
           aria-pressed={tab === "practice"}
@@ -585,18 +647,47 @@ function App() {
             {message}
           </p>
         )}
-        {(tab === "practice" || tab === "recognition") && (
+        {(tab === "practice" || tab === "recognition" || tab === "learn") && (
           <>
             <h2>
-              {tab === "practice" ? "Capturar muestras" : "Reconocimiento"}
+              {tab === "learn"
+                ? "Aprender el alfabeto"
+                : tab === "practice"
+                  ? "Capturar muestras"
+                  : "Reconocimiento"}
             </h2>
             <p className="notice">
-              {tab === "practice"
-                ? "Guarda intentos etiquetados para entrenar el modelo."
-                : "Activa la cámara y prueba una seña durante 3 segundos. Puedes usar el modelo inicial o entrenar uno personal; probar no guarda el intento."}
+              {tab === "learn"
+                ? "Practica una letra por vez con la referencia y revisa el resultado de tu intento."
+                : tab === "practice"
+                  ? "Guarda intentos etiquetados para entrenar el modelo."
+                  : "Activa la cámara y prueba una seña durante 3 segundos. Puedes usar el modelo inicial o entrenar uno personal; probar no guarda el intento."}
             </p>
             <div className="workspace">
-              {tab === "practice" ? (
+              {tab === "learn" ? (
+                <LearningPanel
+                  letter={lessonLetter}
+                  supported={recognizer?.labels ?? []}
+                  busy={recording || training || importing}
+                  history={history}
+                  result={lessonResult}
+                  onSelect={(value) => {
+                    setLessonLetter(value);
+                    setLessonResult(null);
+                  }}
+                  onNext={() => {
+                    const supported = (recognizer?.labels ?? []).filter(
+                      (l) => REFERENCE_CROPS[l],
+                    );
+                    setLessonLetter(
+                      supported[
+                        (supported.indexOf(lessonLetter) + 1) % supported.length
+                      ],
+                    );
+                    setLessonResult(null);
+                  }}
+                />
+              ) : tab === "practice" ? (
                 <section className="panel">
                   <label className="letter-select">
                     Letra
@@ -620,33 +711,7 @@ function App() {
                   </p>
                   <div className="reference">
                     <h3>Referencia: {letter}</h3>
-                    {crop ? (
-                      <svg
-                        className="reference-crop"
-                        viewBox={REFERENCE_CROPS[letter]}
-                        role="img"
-                        aria-label={`Referencia de la letra ${letter} de la lámina del equipo`}
-                      >
-                        <defs>
-                          <clipPath id="reference-clip">
-                            <rect
-                              x={crop[0]}
-                              y={crop[1]}
-                              width={crop[2]}
-                              height={crop[3]}
-                            />
-                          </clipPath>
-                        </defs>
-                        <image
-                          clipPath="url(#reference-clip)"
-                          href="/alfabeto-referencia.jpeg"
-                          width="460"
-                          height="667"
-                        />
-                      </svg>
-                    ) : (
-                      <p>La lámina no incluye la letra {letter}.</p>
-                    )}
+                    <LetterReference letter={letter} />
                     <p className="help">
                       Lámina proporcionada por el equipo, pendiente de
                       validación para LENSEGUA. Las imágenes fijas no muestran
@@ -846,11 +911,17 @@ function App() {
                         !active ||
                         !detected ||
                         recording ||
-                        training
+                        training ||
+                        (tab === "learn" &&
+                          !recognizer.labels.includes(lessonLetter))
                       }
                       onClick={testRecognition}
                     >
-                      {recording ? "Probando…" : "Probar reconocimiento (3 s)"}
+                      {recording
+                        ? "Evaluando intento…"
+                        : tab === "learn"
+                          ? `Practicar letra ${lessonLetter}`
+                          : "Probar reconocimiento (3 s)"}
                     </button>
                   )}
                 </div>

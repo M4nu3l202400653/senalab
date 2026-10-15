@@ -105,6 +105,21 @@ class ServerTests(unittest.TestCase):
             self.store.import_dataset(self.p1, {**data, 'samples': [sample(), invalid]})
         self.assertEqual(len(self.store.samples(self.p1)), 2)
 
+    def test_practice_progress_is_persistent_private_and_idempotent(self):
+        event = {'id': str(uuid.uuid4()), 'target': 'A', 'candidate': 'A', 'outcome': 'match', 'modelSource': 'initial'}
+        stored = self.store.save_practice(self.p1, event)
+        self.assertIn('createdAt', stored)
+        self.store.save_practice(self.p1, event)
+        reopened = Store(self.db, self.initial)
+        self.assertEqual(reopened.practice_history(self.p1), [stored])
+        self.assertEqual(reopened.practice_history(self.p2), [])
+        self.assertEqual(reopened.samples(self.p1), [])
+        uncertain = {**event, 'id': str(uuid.uuid4()), 'candidate': None, 'outcome': 'uncertain'}
+        self.store.save_practice(self.p1, uncertain)
+        with self.assertRaisesRegex(ValueError, 'inconsistente'):
+            self.store.save_practice(self.p1, {**event, 'id': str(uuid.uuid4()), 'candidate': 'B'})
+        self.assertEqual(len(self.store.practice_history(self.p1)), 2)
+
     def test_http_requires_profile_and_persists_samples(self):
         server = ThreadingHTTPServer(('127.0.0.1', 0), handler_for(self.store))
         thread = threading.Thread(target=server.serve_forever, daemon=True)

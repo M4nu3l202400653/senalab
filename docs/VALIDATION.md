@@ -41,3 +41,10 @@ Pendiente: capturar intentos con una mano real y cámara física, comprobar los 
 - 11 pruebas web aprobadas y build de producción aprobado. Pruebas nuevas de orden captura/pausa, interrupción por intento inválido y cancelación de temporizadores.
 - Navegador con cámara/detector simulados y API real: una serie produce cinco UUID distintos con etiqueta/participante conservados; cancelar en la pausa conserva un intento; perder detección no guarda un intento incompleto ni inicia otra captura.
 - Pendiente probar la serie con cámara física. Las pausas requieren que el participante suelte y repita la seña; la aplicación no garantiza independencia ni corrección lingüística.
+
+## Aprender: práctica guiada
+
+- 13 pruebas web, 8 pruebas de API y 5 de entrenamiento aprobadas; build TypeScript/producción aprobado.
+- Pruebas nuevas: clasificación del resultado de práctica, rechazo de votos ambiguos, persistencia/idempotencia del historial, aislamiento de perfiles y rechazo de resultados inconsistentes.
+- Navegador con cámara, detector y modelo simulados y API real: referencia de letra, coincidencia, candidata diferente, respuesta ambigua, bloqueo de evaluación de letra no soportada, avance, progreso recuperado tras recarga, cero muestras añadidas al practicar y sin desbordamiento horizontal a 390 px. Sin excepciones JavaScript.
+- Inspección visual en escritorio. Pendiente prueba con cámara física y evaluación de los umbrales con datos revisados. No se cambió el modelo activo ni se marcaron los datasets del equipo como revisados.

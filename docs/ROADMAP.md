@@ -42,7 +42,7 @@ Salida: reporte por letra, matriz de confusión y resultados en personas nuevas.
 - [x] Mantener idéntico preprocesamiento entre Python y web y verificar paridad.
 - [ ] Calibrar umbral con conjunto de desarrollo, incluir ejemplos fuera de catálogo y postura neutra.
 - [ ] Evaluar una secuencia por intento y permitir rechazo por evidencia insuficiente.
-- [ ] Registrar progreso; reconocer intención no equivale a evaluar ejecución correcta.
+- [x] Registrar historial y coincidencias de práctica por perfil; reconocer intención no equivale a evaluar ejecución correcta.
 
 Salida: práctica real para letras soportadas con límites explícitos y medición de latencia.
 
@@ -67,3 +67,13 @@ Se habilita un modo experimental para una sola persona, incluso con un intento p
 - [x] Quitar las fases de la interfaz; conservar este plan técnico.
 - [ ] Reconocimiento continuo, suavizado temporal y ejecución en worker; hoy se usan intentos de 3 segundos.
 - [ ] Despliegue de API, cuentas y persistencia para múltiples usuarios.
+
+## Etapa didáctica inicial
+
+- [x] Pantalla Aprender con referencia, selección y avance por letra.
+- [x] Intentos de tres segundos separados del conjunto de entrenamiento.
+- [x] Feedback de coincidencia, otra letra o decisión ambigua (umbrales provisionales).
+- [x] Historial de práctica persistente y aislado por perfil.
+- [x] Desactivar evaluación de letras no soportadas por el modelo.
+- [ ] Validar las referencias y calibrar la respuesta con datos revisados de personas no usadas al entrenar.
+- [ ] Evaluación pedagógica con usuarios e instructores competentes en LENSEGUA.
